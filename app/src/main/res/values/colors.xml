@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#030A2C</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="surface">#F5F7FB</color>
+    <color name="surfaceStrong">#E8ECF3</color>
+    <color name="onSurface">#111827</color>
+    <color name="primary">#0B4F6C</color>
+    <color name="primaryContainer">#0A3F56</color>
+    <color name="onPrimary">#F5FAFF</color>
+    <color name="cardStroke">#C7D2E5</color>
+    <color name="badge">#E53935</color>
+</resources>

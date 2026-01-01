@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">Vio</string>
+    <string name="hello_blank_fragment">Xin chào</string>
+    <string name="default_web_client_id">494900873089-l14k9df8ds231lphjln111im4ric58lg.apps.googleusercontent.com</string>
+
+    <string name="you">Bạn</string>
+    <string name="message">Tin nhắn</string>
+    <string name="dialog_delete_message">Bạn có muốn xóa tin nhắn này không?</string>
+    <string name="delete">Xóa</string>
+    <string name="delete_both">Xóa cho cả hai</string>
+    <string name="cancel">Hủy</string>
+    <string name="loading">Đang tải...</string>
+    <string name="login_subtext">Vui lòng đăng nhập để tiếp tục</string>
+    <string name="welcome_chatme">Chào mừng đến với Vio</string>
+    <string name="nickname">Biệt danh</string>
+    <string name="user_email_placeholder">Email</string>
+    <string name="log_out">Đăng xuất</string>
+    <string name="messages_hint">Nhập tin nhắn...</string>
+    <string name="send">Gửi</string>
+    <string name="item_users_text">Người dùng</string>
+    <string name="item_users_number">%1$d người dùng</string>
+    <string name="press_again_to_exit">Nhấn lại để thoát</string>
+    <string name="join_us">Tham gia cùng chúng tôi</string>
+    <string name="copied_message">Đã sao chép tin nhắn</string>
+    <string name="copied_message_label">Đã sao chép</string>
+    <string name="alert_title">Thông báo</string>
+    <string name="alert_message">Bạn có chắc chắn không?</string>
+    <string name="alert_positive">Có</string>
+    <string name="alert_negative">Không</string>
+    <string name="unknown">Không xác định</string>
+    <string name="share_message">Chia sẻ tin nhắn</string>
+    <string name="messages_list_cd">Danh sách tin nhắn</string>
+    <string name="send_message_cd">Gửi tin nhắn</string>
+    <string name="menu_edit">Chỉnh sửa</string>
+    <string name="menu_delete">Xóa</string>
+    <string name="menu_copy">Sao chép</string>
+    <string name="menu_share">Chia sẻ</string>
+    <string name="user_avatar">Ảnh đại diện</string>
+    <string name="edited_view_history">Đã chỉnh sửa • Xem lịch sử</string>
+    <string name="edited_hide_history">Đã chỉnh sửa • Ẩn lịch sử</string>
+    <string name="edit_not_allowed">Bạn chỉ có thể chỉnh sửa tin nhắn của mình</string>
+    <string name="logout_warning">Nếu bạn đăng xuất, tất cả tin nhắn sẽ được xóa vì lý do bảo mật. Khi đăng nhập lại, bạn có thể sẽ không xem lại được chúng!</string>
+    <string name="logged_out">Đăng xuất thành công</string>
+    <string name="no_name">Không có tên</string>
+    <string name="no_email">Không có email</string>
+    <string name="back_button_cd">Quay lại</string>
+
+</resources>

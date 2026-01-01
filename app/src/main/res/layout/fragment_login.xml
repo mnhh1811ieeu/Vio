@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface"
+    tools:context=".fm.LoginFragment">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/loginAvatarCard"
+        android:layout_width="@dimen/_240sdp"
+        android:layout_height="@dimen/_240sdp"
+        android:layout_marginTop="@dimen/_46sdp"
+        android:elevation="@dimen/_5sdp"
+        app:cardCornerRadius="@dimen/_120sdp"
+        app:cardElevation="@dimen/_5sdp"
+        app:strokeColor="#56A9DC"
+        app:strokeWidth="@dimen/_2sdp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/img" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/loginSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/_33sdp"
+        android:layout_marginTop="@dimen/_12sdp"
+        android:gravity="center"
+        android:text="@string/login_subtext"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium.Inverse"
+        android:textColor="#696C6D"
+        android:textStyle="normal"
+        app:layout_constraintTop_toBottomOf="@id/loginAvatarCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/_48sdp"
+        android:layout_marginTop="@dimen/_24sdp"
+        android:fontFamily="sans-serif-condensed-medium"
+        android:gravity="center"
+        android:letterSpacing="0.1"
+        android:shadowColor="#EBE9E9"
+        android:shadowRadius="2"
+        android:text="@string/welcome_chatme"
+        android:textAppearance="@style/TextAppearance.AppCompat.Large"
+        android:textColor="#2B2D30"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/loginSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <com.google.android.gms.common.SignInButton
+        android:id="@+id/btnGoogleSignIn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/_20sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:backgroundTint="#DFDFDF"
+        android:elevation="@dimen/_5sdp"
+        app:layout_constraintTop_toBottomOf="@id/textView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
