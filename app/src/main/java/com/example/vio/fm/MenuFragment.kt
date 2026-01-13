@@ -31,10 +31,6 @@ class MenuFragment : Fragment() {
             findNavController().navigate(R.id.profileFragment)
         }
 
-        binding.menuEditProfile.setOnClickListener {
-            findNavController().navigate(R.id.editProfileFragment)
-        }
-
         binding.menuSettings.setOnClickListener {
             findNavController().navigate(R.id.settingsFragment)
         }

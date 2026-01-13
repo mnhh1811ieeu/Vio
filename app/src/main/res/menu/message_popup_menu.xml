@@ -1,23 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <item
-        android:id="@+id/menu_edit"
-        android:icon="@drawable/ic_edit"
-        android:iconTint="#171F47"
-        android:title="@string/menu_edit" />
-    <item
-        android:id="@+id/menu_delete"
-        android:icon="@drawable/ic_delete"
-        android:iconTint="#171F47"
-        android:title="@string/menu_delete" />
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <item
         android:id="@+id/copy_message"
         android:icon="@drawable/ic_copy"
-        android:iconTint="#171F47"
+        android:iconTint="#000000"
         android:title="@string/menu_copy" />
+
     <item
         android:id="@+id/share_message"
         android:icon="@drawable/ic_share"
-        android:iconTint="#171F47"
+        android:iconTint="#000000"
         android:title="@string/menu_share" />
+
+    <item
+        android:id="@+id/menu_edit"
+        android:icon="@drawable/ic_edit"
+        android:iconTint="#000000"
+        android:title="@string/menu_edit" />
+
+    <item
+        android:id="@+id/menu_delete"
+        android:icon="@drawable/ic_delete"
+        android:iconTint="#FF3B30"
+        android:title="@string/menu_delete" />
+
 </menu>

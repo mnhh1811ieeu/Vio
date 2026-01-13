@@ -10,46 +10,44 @@
 
     <LinearLayout
         android:id="@+id/homeHeader"
-        android:layout_width="0dp"
-        android:layout_height="@dimen/_85sdp"
-        android:background="@color/surfaceStrong"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_60sdp"
+        android:background="#4DACFF"
         android:gravity="center_vertical"
-        android:paddingHorizontal="@dimen/_5sdp"
-        android:paddingTop="@dimen/_8sdp"
-        android:paddingBottom="@dimen/_5sdp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/_10sdp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_50sdp"
-            android:layout_height="@dimen/_50sdp"
-            android:layout_marginStart="@dimen/_8sdp"
-            app:cardCornerRadius="@dimen/_25sdp"
-            app:strokeColor="#F8F8F2"
-            app:strokeWidth="@dimen/_2sdp">
+            android:layout_width="@dimen/_40sdp"
+            android:layout_height="@dimen/_40sdp"
+            app:cardCornerRadius="@dimen/_20sdp"
+            app:strokeColor="#FFFFFF"
+            app:strokeWidth="1.5dp"
+            app:cardElevation="0dp">
 
             <ImageView
                 android:id="@+id/my_avatar"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:scaleType="centerCrop"
                 android:src="@drawable/img_1" />
-
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/my_name"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="sans-serif-condensed"
-            android:gravity="center_vertical"
+            android:layout_marginStart="@dimen/_10sdp"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
-            android:paddingStart="@dimen/_10sdp"
-            android:paddingEnd="@dimen/_7sdp"
+            android:ellipsize="end"
             android:text="NguyenMinhHieu"
-            android:textColor="@color/onSurface"
-            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
     </LinearLayout>

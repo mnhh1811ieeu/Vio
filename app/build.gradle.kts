@@ -10,12 +10,23 @@ android {
     namespace = "com.example.vio"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.example.vio"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        val cloudName = project.findProperty("CLOUDINARY_CLOUD_NAME") as? String ?: ""
+        val cloudKey = project.findProperty("CLOUDINARY_API_KEY") as? String ?: ""
+        val cloudSecret = project.findProperty("CLOUDINARY_API_SECRET") as? String ?: ""
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME", "\"$cloudName\"")
+        buildConfigField("String", "CLOUDINARY_API_KEY", "\"$cloudKey\"")
+        buildConfigField("String", "CLOUDINARY_API_SECRET", "\"$cloudSecret\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -59,6 +70,8 @@ dependencies {
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.database)
     implementation("com.google.firebase:firebase-storage-ktx:21.0.0")
+    implementation("com.cloudinary:cloudinary-android:3.0.2")
+    implementation("com.github.yalantis:ucrop:2.2.8")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

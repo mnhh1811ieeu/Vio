@@ -33,7 +33,7 @@ class SettingsFragment : Fragment() {
         binding.swDarkMode.setOnCheckedChangeListener { _, isChecked ->
             Toast.makeText(requireContext(), if (isChecked) "Bật chế độ tối" else "Tắt chế độ tối", Toast.LENGTH_SHORT).show()
         }
-        binding.btnLogout.setOnClickListener {
+        binding.btnLogoutContainer.setOnClickListener {
             FirebaseAuth.getInstance().signOut()
             Toast.makeText(requireContext(), getString(R.string.logged_out), Toast.LENGTH_SHORT).show()
             findNavController().navigate(R.id.loginFragment)

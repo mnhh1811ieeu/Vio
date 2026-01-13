@@ -1,7 +1,7 @@
 package com.example.vio.fm
 
 import android.Manifest
-import android.graphics.Bitmap
+import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,14 +10,17 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.vio.R
+import com.example.vio.data.CloudinaryImageService
 import com.example.vio.databinding.FragmentEditProfileBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.userProfileChangeRequest
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
+import com.yalantis.ucrop.UCrop
+import java.io.File
 
 class EditProfileFragment : Fragment() {
 
@@ -25,30 +28,37 @@ class EditProfileFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var selectedImageUri: Uri? = null
-    private var capturedBitmap: Bitmap? = null
+    private var cameraImageUri: Uri? = null
     private var hasNewPhoto = false
 
     private val pickGallery = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let {
-            selectedImageUri = it
-            capturedBitmap = null
-            binding.imgAvatar.setImageURI(it)
-            hasNewPhoto = true
+        uri?.let { startCrop(it) }
+    }
+
+    private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && cameraImageUri != null) {
+            startCrop(cameraImageUri!!)
         }
     }
 
-    private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-        bitmap?.let {
-            capturedBitmap = it
-            selectedImageUri = null
-            binding.imgAvatar.setImageBitmap(it)
-            hasNewPhoto = true
+    private val cropImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val output = result.data?.let { UCrop.getOutput(it) }
+            output?.let {
+                selectedImageUri = it
+                binding.imgAvatar.setImageURI(it)
+                hasNewPhoto = true
+            }
+        } else if (result.resultCode == UCrop.RESULT_ERROR) {
+            val error = result.data?.let { UCrop.getError(it) }
+            Toast.makeText(requireContext(), error?.localizedMessage ?: "Crop lỗi", Toast.LENGTH_SHORT).show()
         }
     }
 
     private val requestCameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
-            takePhoto.launch(null)
+            cameraImageUri = prepareCameraUri()
+            takePhoto.launch(cameraImageUri)
         } else {
             Toast.makeText(requireContext(), "Cần quyền camera để chụp ảnh", Toast.LENGTH_SHORT).show()
         }
@@ -136,35 +146,54 @@ class EditProfileFragment : Fragment() {
     }
 
     private fun uploadPhotoThenSave(uid: String, name: String) {
-        val storageRef = FirebaseStorage.getInstance().reference.child("avatars/$uid.jpg")
-
-        val uploadTask = when {
-            selectedImageUri != null -> storageRef.putFile(selectedImageUri!!)
-            capturedBitmap != null -> {
-                val baos = java.io.ByteArrayOutputStream()
-                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 90, baos)
-                val data = baos.toByteArray()
-                storageRef.putBytes(data)
-            }
-            else -> {
-                updateProfile(uid, name, null)
-                return
-            }
+        val photoUri = selectedImageUri
+        if (photoUri == null) {
+            updateProfile(uid, name, null)
+            return
         }
 
-        uploadTask
-            .continueWithTask { task ->
-                if (!task.isSuccessful) throw task.exception ?: java.lang.Exception("Upload failed")
-                storageRef.downloadUrl
-            }
-            .addOnSuccessListener { uri ->
-                updateProfile(uid, name, uri.toString())
-            }
-            .addOnFailureListener {
-                Toast.makeText(requireContext(), "Tải ảnh thất bại", Toast.LENGTH_SHORT).show()
+        CloudinaryImageService.uploadAvatar(requireContext(), uid, photoUri) { result ->
+            result.onSuccess { url ->
+                updateProfile(uid, name, url)
+            }.onFailure { err ->
+                Toast.makeText(requireContext(), "Upload thất bại: ${err.message}", Toast.LENGTH_SHORT).show()
                 binding.btnSave.isEnabled = true
                 binding.btnSave.alpha = 1f
             }
+        }
+    }
+
+    private fun startCrop(source: Uri) {
+        val destFile = File.createTempFile("avatar_cropped_", ".jpg", requireContext().cacheDir)
+        val destUri = FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            destFile
+        )
+
+        val options = UCrop.Options().apply {
+            setCompressionQuality(90)
+            setCircleDimmedLayer(true)
+            setHideBottomControls(true)
+            setFreeStyleCropEnabled(false)
+        }
+
+        val intent = UCrop.of(source, destUri)
+            .withAspectRatio(1f, 1f)
+            .withOptions(options)
+            .getIntent(requireContext())
+            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        cropImage.launch(intent)
+    }
+
+    private fun prepareCameraUri(): Uri {
+        val file = File.createTempFile("avatar_capture_", ".jpg", requireContext().cacheDir)
+        return FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            file
+        )
     }
 
     private fun updateProfile(uid: String, name: String, photoUrl: String?) {
