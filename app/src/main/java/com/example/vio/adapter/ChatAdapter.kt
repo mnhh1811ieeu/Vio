@@ -1,5 +1,6 @@
 package com.example.vio.adapter
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,21 +15,14 @@ class ChatAdapter(
     private val currentUserId: String,
     private val onMessageLongClick: (View, Int, MessageModel) -> Unit
 ) : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
-    // Adapter chịu trách nhiệm hiển thị danh sách message trong RecyclerView.
-    // - `messages`: nguồn dữ liệu mutable chứa MessageModel
-    // - `currentUserId`: để phân biệt message của chính mình và của người khác
-    // - `onMessageLongClick`: callback khi người dùng tương tác (ở đây được gọi từ click listener)
 
-    // ViewHolder giữ các View con trong item layout để tái sử dụng hiệu quả
     inner class ChatViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        // Layout/Views dành cho message của chính bạn (right side thường)
         val youLayout = view.findViewById<LinearLayout>(R.id.youMessageLayout)
         val youName = view.findViewById<TextView>(R.id.youName)
         val youMessage = view.findViewById<TextView>(R.id.youMessage)
         val youHistoryContainer = view.findViewById<LinearLayout>(R.id.youHistoryContainer)
         val youEditedInfo = view.findViewById<TextView>(R.id.youEditedInfo)
 
-        // Layout/Views dành cho message của người khác (left side thường)
         val otherLayout = view.findViewById<LinearLayout>(R.id.otherMessageLayout)
         val otherName = view.findViewById<TextView>(R.id.otherName)
         val otherMessage = view.findViewById<TextView>(R.id.otherMessage)
@@ -44,122 +38,113 @@ class ChatAdapter(
     override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
         val message = messages[position]
 
-        // Nếu sender của message chính là user hiện tại -> hiển thị layout "you"
+        // ----------------------------------------------------
+        // PHẦN CỦA SENDER (BẠN)
+        // ----------------------------------------------------
         if (message.senderId == currentUserId) {
             holder.youLayout.visibility = View.VISIBLE
             holder.otherLayout.visibility = View.GONE
 
-            // Hiện tên và nội dung (ở đây tên được hard-coded là "Siz" — có thể đổi thành getString)
             holder.youName.setText(R.string.you)
             holder.youMessage.text = message.message
+            // KHÔNG sửa background của youMessage (giữ nguyên giao diện chính)
 
-            // Hiển thị lịch sử chỉnh sửa (nếu có)
+            // --- Xử lý phần LỊCH SỬ ---
             holder.youHistoryContainer.removeAllViews()
             holder.youHistoryContainer.visibility = View.GONE
+
             if (message.edited) {
                 holder.youEditedInfo.visibility = View.VISIBLE
                 holder.youEditedInfo.text = holder.view.context.getString(R.string.edited_view_history)
 
                 val history = message.editHistory ?: emptyMap()
-                if (history.isNotEmpty()) {
-                    history.toSortedMap().forEach { (_, prevText) ->
-                        val tv = TextView(holder.view.context)
-                        tv.text = prevText
-                        tv.setPadding(8, 6, 8, 6)
-                        tv.setTextColor(0xFF333333.toInt())
-                        tv.textSize = 13f
-                        tv.setBackgroundColor(0xFFEEEEEE.toInt())
-                        val params = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                        params.topMargin = 4
-                        holder.youHistoryContainer.addView(tv, params)
-                    }
-                } else if (message.originalMessage != null) {
-                    // Tương thích cũ: nếu chỉ có originalMessage
+                // Lấy list lịch sử hoặc message gốc cũ
+                val historyList = if (history.isNotEmpty()) history.toSortedMap().values else listOfNotNull(message.originalMessage)
+
+                for (prevText in historyList) {
                     val tv = TextView(holder.view.context)
-                    tv.text = message.originalMessage
-                    tv.setPadding(8, 6, 8, 6)
-                    tv.setTextColor(0xFF333333.toInt())
+                    tv.text = prevText
+
+                    // Style: Tăng padding lên chút vì bo góc 18dp khá lớn
+                    tv.setPadding(24, 16, 24, 16)
+
+                    // ===> SỬ DỤNG BACKGROUND MÀU XANH <===
+                    tv.setBackgroundResource(R.drawable.bg_original_sender)
+
+                    // Nền xanh đậm nên để chữ TRẮNG
+                    tv.setTextColor(Color.WHITE)
                     tv.textSize = 13f
-                    tv.setBackgroundColor(0xFFEEEEEE.toInt())
-                    holder.youHistoryContainer.addView(tv)
+
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.topMargin = 12 // Cách nhau ra một chút
+                    holder.youHistoryContainer.addView(tv, params)
                 }
             } else {
                 holder.youEditedInfo.visibility = View.GONE
             }
 
-            // Gắn listener: khi người dùng nhấn vào message của mình, gọi callback để hiện menu
-            // Lưu ý: callback được truyền từ Fragment/Activity nơi adapter được khởi tạo
             holder.youLayout.setOnClickListener {
                 onMessageLongClick(it, position, message)
             }
 
-            // Toggle hiển thị lịch sử
             holder.youEditedInfo.setOnClickListener {
-                if (holder.youHistoryContainer.visibility == View.VISIBLE) {
-                    holder.youHistoryContainer.visibility = View.GONE
-                    holder.youEditedInfo.text = holder.view.context.getString(R.string.edited_view_history)
-                } else {
-                    holder.youHistoryContainer.visibility = View.VISIBLE
-                    holder.youEditedInfo.text = holder.view.context.getString(R.string.edited_hide_history)
-                }
+                toggleHistory(holder.youHistoryContainer, holder.youEditedInfo)
             }
-        } else {
-            // Message của người khác -> hiển thị layout "other"
+
+        }
+        // ----------------------------------------------------
+        // PHẦN CỦA RECEIVER (NGƯỜI KHÁC)
+        // ----------------------------------------------------
+        else {
             holder.youLayout.visibility = View.GONE
             holder.otherLayout.visibility = View.VISIBLE
 
-            holder.otherName.text = message.senderName // tên người gửi
-            holder.otherMessage.text = message.message // nội dung message
+            holder.otherName.text = message.senderName
+            holder.otherMessage.text = message.message
+            // KHÔNG sửa background của otherMessage (giữ nguyên giao diện chính)
 
+            // --- Xử lý phần LỊCH SỬ ---
             holder.otherHistoryContainer.removeAllViews()
             holder.otherHistoryContainer.visibility = View.GONE
+
             if (message.edited) {
                 holder.otherEditedInfo.visibility = View.VISIBLE
                 holder.otherEditedInfo.text = holder.view.context.getString(R.string.edited_view_history)
 
                 val history = message.editHistory ?: emptyMap()
-                if (history.isNotEmpty()) {
-                    history.toSortedMap().forEach { (_, prevText) ->
-                        val tv = TextView(holder.view.context)
-                        tv.text = prevText
-                        tv.setPadding(8, 6, 8, 6)
-                        tv.setTextColor(0xFF333333.toInt())
-                        tv.textSize = 13f
-                        tv.setBackgroundColor(0xFFEEEEEE.toInt())
-                        val params = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                        params.topMargin = 4
-                        holder.otherHistoryContainer.addView(tv, params)
-                    }
-                } else if (message.originalMessage != null) {
+                val historyList = if (history.isNotEmpty()) history.toSortedMap().values else listOfNotNull(message.originalMessage)
+
+                for (prevText in historyList) {
                     val tv = TextView(holder.view.context)
-                    tv.text = message.originalMessage
-                    tv.setPadding(8, 6, 8, 6)
-                    tv.setTextColor(0xFF333333.toInt())
+                    tv.text = prevText
+
+                    tv.setPadding(24, 16, 24, 16)
+
+                    // ===> SỬ DỤNG BACKGROUND MÀU XÁM NHẠT <===
+                    tv.setBackgroundResource(R.drawable.bg_original_receiver)
+
+                    // Nền sáng nên để chữ ĐEN (hoặc xám đậm)
+                    tv.setTextColor(Color.parseColor("#333333"))
                     tv.textSize = 13f
-                    tv.setBackgroundColor(0xFFEEEEEE.toInt())
-                    holder.otherHistoryContainer.addView(tv)
+
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.topMargin = 12
+                    holder.otherHistoryContainer.addView(tv, params)
                 }
             } else {
                 holder.otherEditedInfo.visibility = View.GONE
             }
 
             holder.otherEditedInfo.setOnClickListener {
-                if (holder.otherHistoryContainer.visibility == View.VISIBLE) {
-                    holder.otherHistoryContainer.visibility = View.GONE
-                    holder.otherEditedInfo.text = holder.view.context.getString(R.string.edited_view_history)
-                } else {
-                    holder.otherHistoryContainer.visibility = View.VISIBLE
-                    holder.otherEditedInfo.text = holder.view.context.getString(R.string.edited_hide_history)
-                }
+                toggleHistory(holder.otherHistoryContainer, holder.otherEditedInfo)
             }
 
-            // Gắn listener tương tự cho layout của người khác
             holder.otherLayout.setOnClickListener {
                 onMessageLongClick(it, position, message)
             }
@@ -175,4 +160,14 @@ class ChatAdapter(
         }
     }
 
+    // Hàm phụ trợ để ẩn/hiện lịch sử gọn gàng hơn
+    private fun toggleHistory(container: View, infoText: TextView) {
+        if (container.visibility == View.VISIBLE) {
+            container.visibility = View.GONE
+            infoText.text = infoText.context.getString(R.string.edited_view_history)
+        } else {
+            container.visibility = View.VISIBLE
+            infoText.text = infoText.context.getString(R.string.edited_hide_history)
+        }
+    }
 }

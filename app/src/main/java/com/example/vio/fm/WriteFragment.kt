@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.CheckBox
 import android.widget.TextView
@@ -186,6 +187,12 @@ class WriteFragment : Fragment() {
                 }, 100)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Ép Activity dùng chế độ resize để header cố định, chỉ danh sách + ô nhập co lại theo bàn phím
+        requireActivity().window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
     }
 
     private fun showPopupMenu(view: View, position: Int, message: MessageModel) {

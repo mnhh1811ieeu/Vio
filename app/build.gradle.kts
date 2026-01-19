@@ -18,7 +18,7 @@ android {
         applicationId = "com.example.vio"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         val cloudName = project.findProperty("CLOUDINARY_CLOUD_NAME") as? String ?: ""
@@ -80,8 +80,14 @@ dependencies {
 
     implementation("com.intuit.sdp:sdp-android:1.1.0")
     implementation("com.intuit.ssp:ssp-android:1.1.0")
-
+    implementation("androidx.concurrent:concurrent-futures:1.1.0")
+    implementation("com.google.guava:guava:31.1-android") // Thêm dòng này để fix triệt để lỗi ListenableFuture
     implementation(libs.glide)
     kapt(libs.compiler)
-
+    val camerax_version = "1.3.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+    implementation("androidx.camera:camera-extensions:${camerax_version}")
 }

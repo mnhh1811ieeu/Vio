@@ -15,55 +15,34 @@
       },
       "oauth_client": [
         {
-          "client_id": "494900873089-l14k9df8ds231lphjln111im4ric58lg.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyC5RIYEIU6jY8_FkUBz8rhhPFjxbrZ7QG8"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "494900873089-l14k9df8ds231lphjln111im4ric58lg.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:494900873089:android:50c533015e930d71714a80",
-        "android_client_info": {
-          "package_name": "com.samurai.chatme"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "494900873089-knl38ngih0is053cs1pf5h8un0iaitnm.apps.googleusercontent.com",
+          "client_id": "494900873089-cj5c4kqloqtgke0fg3o72n8e03fi3782.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.samurai.chatme",
-            "certificate_hash": "22aee57346b70735ebabeeb7a074e8649592928d"
-          }
-        },
-        {
-          "client_id": "494900873089-mtsn6mm6cklkf2sc4iikqrq732v65s72.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.samurai.chatme",
+            "package_name": "com.example.vio",
             "certificate_hash": "d867d3d9102b6d3a188937bf1731bb1076a35047"
           }
         },
         {
-          "client_id": "494900873089-tm0g7tthjljf3b1t0vb3bl7k31m1dc0j.apps.googleusercontent.com",
+          "client_id": "494900873089-da1btl1jgdklcdr2d1g2r9u4rjvvs5e0.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.samurai.chatme",
+            "package_name": "com.example.vio",
+            "certificate_hash": "22aee57346b70735ebabeeb7a074e8649592928d"
+          }
+        },
+        {
+          "client_id": "494900873089-fm8tq1abg6hcgmcht9fs5nnlqsfe0c6q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.vio",
+            "certificate_hash": "5dc3266cd243c5f87b7d975b77f5d77ee040c750"
+          }
+        },
+        {
+          "client_id": "494900873089-ofu086kc2t4e8fdkgod4qvvpdjci0g58.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.vio",
             "certificate_hash": "32c15fd4265ac834b1b19a9dc95f191d3d29120a"
           }
         },

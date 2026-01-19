@@ -104,6 +104,8 @@ class ProfileFragment : Fragment() {
         photo?.let {
             Glide.with(this)
                 .load(it)
+                .thumbnail(0.2f)
+                .override(256)
                 .placeholder(R.drawable.img_1)
                 .error(R.drawable.img_1)
                 .circleCrop()
@@ -164,13 +166,20 @@ class ProfileFragment : Fragment() {
             return
         }
 
-        CloudinaryImageService.uploadAvatar(requireContext(), uid, photoUri) { result ->
+        val ctx = context
+        if (ctx == null) {
+            // Fragment đã tách khỏi màn hình, bỏ qua xử lý
+            return
+        }
+
+        CloudinaryImageService.uploadAvatar(ctx, uid, photoUri) { result ->
             result.onSuccess { url ->
                 updateProfile(uid, name, url)
             }.onFailure { err ->
-                Toast.makeText(requireContext(), "Upload thất bại: ${err.message}", Toast.LENGTH_SHORT).show()
-                binding.btnSave.isEnabled = true
-                binding.btnSave.alpha = 1f
+                val b = _binding ?: return@onFailure
+                context?.let { Toast.makeText(it, "Upload thất bại: ${err.message}", Toast.LENGTH_SHORT).show() }
+                b.btnSave.isEnabled = true
+                b.btnSave.alpha = 1f
             }
         }
     }
@@ -216,16 +225,19 @@ class ProfileFragment : Fragment() {
             .child(uid)
             .updateChildren(updates)
             .addOnSuccessListener {
+                if (!isAdded) return@addOnSuccessListener
                 updateAuthProfile(name, photoUrl)
-                Toast.makeText(requireContext(), "Đã lưu", Toast.LENGTH_SHORT).show()
+                context?.let { Toast.makeText(it, "Đã lưu", Toast.LENGTH_SHORT).show() }
                 hasNewPhoto = false
             }
             .addOnFailureListener {
-                Toast.makeText(requireContext(), "Lưu thất bại", Toast.LENGTH_SHORT).show()
+                if (!isAdded) return@addOnFailureListener
+                context?.let { Toast.makeText(it, "Lưu thất bại", Toast.LENGTH_SHORT).show() }
             }
             .addOnCompleteListener {
-                binding.btnSave.isEnabled = true
-                binding.btnSave.alpha = 1f
+                val b = _binding ?: return@addOnCompleteListener
+                b.btnSave.isEnabled = true
+                b.btnSave.alpha = 1f
             }
     }
 

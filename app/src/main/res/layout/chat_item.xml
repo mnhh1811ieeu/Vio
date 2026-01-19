@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="4dp">
 
     <!-- YOU (current user) message -->
     <LinearLayout
@@ -20,9 +21,9 @@
             android:id="@+id/youName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="10dp"
+            android:layout_marginEnd="12dp"
             android:text="@string/you"
-            android:textColor="#999"
+            android:textColor="#6B7280"
             android:textSize="11sp" />
 
         <!-- Bản gốc / lịch sử (nếu hiển thị) sẽ nằm TRÊN tin hiện tại -->
@@ -38,12 +39,13 @@
             android:id="@+id/youMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:layout_marginEnd="10dp"
             android:background="@drawable/bg_sender"
-            android:padding="10dp"
+            android:maxWidth="320dp"
+            android:padding="12dp"
             android:text="@string/message"
-            android:textColor="#fff"
+            android:textColor="#FFFFFF"
             android:textSize="16sp" />
 
         <!-- Info 'Đã chỉnh sửa • Xem/Ẩn bản gốc' -->
@@ -53,7 +55,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginEnd="10dp"
-            android:textColor="#888888"
+            android:textColor="#9CA3AF"
             android:textSize="11sp"
             android:visibility="gone" />
 
@@ -64,9 +66,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="10dp"
-            android:padding="8dp"
-            android:background="#EEEEEE"
-            android:textColor="#333333"
+            android:padding="10dp"
+            android:background="@drawable/bg_original_sender"
+            android:textColor="#0F172A"
             android:textSize="13sp"
             android:visibility="gone" />
     </LinearLayout>
@@ -84,10 +86,10 @@
             android:id="@+id/otherName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="12dp"
             android:text="@string/unknown"
             tools:text="Ahihieu"
-            android:textColor="#999"
+            android:textColor="#6B7280"
             android:textSize="12sp" />
 
         <LinearLayout
@@ -102,12 +104,13 @@
             android:id="@+id/otherMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="2dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
             android:background="@drawable/bg_receiver"
-            android:padding="10dp"
+            android:maxWidth="320dp"
+            android:padding="12dp"
             android:text="@string/message"
-            android:textColor="#000"
+            android:textColor="#111827"
             android:textSize="16sp" />
 
         <!-- Info 'Đã chỉnh sửa • Xem/Ẩn bản gốc' -->
@@ -115,9 +118,9 @@
             android:id="@+id/otherEditedInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="12dp"
             android:layout_marginTop="4dp"
-            android:textColor="#888888"
+            android:textColor="#9CA3AF"
             android:textSize="11sp"
             android:visibility="gone" />
 
@@ -126,11 +129,11 @@
             android:id="@+id/otherOriginalMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="12dp"
             android:layout_marginTop="2dp"
-            android:padding="8dp"
-            android:background="#EEEEEE"
-            android:textColor="#333333"
+            android:padding="10dp"
+            android:background="@drawable/bg_original_receiver"
+            android:textColor="#0F172A"
             android:textSize="13sp"
             android:visibility="gone" />
     </LinearLayout>
