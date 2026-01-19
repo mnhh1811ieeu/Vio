@@ -13,10 +13,123 @@
         android:id="@+id/tvContactsTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Danh bạ"
+        android:text="Danh bạ &amp; kết bạn"
         android:textStyle="bold"
         android:textSize="@dimen/_16ssp"
         android:textColor="@color/black" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="@dimen/_8sdp">
+
+        <EditText
+            android:id="@+id/etSearchEmail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Nhập Gmail bạn bè"
+            android:inputType="textEmailAddress"
+            android:padding="@dimen/_8sdp"
+            android:background="@drawable/bg_user_item"
+            android:textColor="@color/black"
+            android:textColorHint="@color/black"
+            android:textSize="@dimen/_12ssp" />
+
+        <Button
+            android:id="@+id/btnSearchFriend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/_8sdp"
+            android:text="Tìm"
+            android:textAllCaps="false"
+            android:paddingHorizontal="@dimen/_12sdp"
+            android:paddingVertical="@dimen/_8sdp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvSearchHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tìm theo Gmail, sau đó kết bạn để có thể nhắn tin."
+        android:textColor="@color/black"
+        android:textSize="@dimen/_12ssp"
+        android:paddingTop="@dimen/_4sdp"
+        android:paddingBottom="@dimen/_8sdp" />
+
+    <LinearLayout
+        android:id="@+id/searchResultCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="@dimen/_10sdp"
+        android:background="@drawable/bg_user_item"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/ivSearchAvatar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/img"
+            android:contentDescription="Avatar" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/_10sdp">
+
+            <TextView
+                android:id="@+id/tvSearchName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Name"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:textSize="@dimen/_14ssp" />
+
+            <TextView
+                android:id="@+id/tvSearchEmail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="email"
+                android:textColor="@color/black"
+                android:textSize="@dimen/_12ssp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnAddFriend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Kết bạn"
+            android:textAllCaps="false"
+            android:paddingHorizontal="@dimen/_12sdp"
+            android:paddingVertical="@dimen/_8sdp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvSearchStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:textSize="@dimen/_12ssp"
+        android:visibility="gone"
+        android:paddingVertical="@dimen/_6sdp" />
+
+    <TextView
+        android:id="@+id/tvContactsSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bạn bè của bạn"
+        android:textStyle="bold"
+        android:textSize="@dimen/_14ssp"
+        android:textColor="@color/black"
+        android:paddingTop="@dimen/_8sdp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvContacts"
@@ -30,7 +143,7 @@
         android:id="@+id/tvEmptyContacts"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Không có người dùng nào"
+        android:text="Chưa có bạn bè nào"
         android:gravity="center"
         android:visibility="gone"
         android:textColor="@color/black"

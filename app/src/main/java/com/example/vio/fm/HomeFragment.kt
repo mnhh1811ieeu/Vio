@@ -77,6 +77,7 @@ class HomeFragment : Fragment() {
 
         // Tải thông tin người dùng
         fetchCurrentUser()
+        ensureEmailSynced()
 
         // Xử lý nút Back (Nhấn 2 lần để thoát)
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
@@ -123,5 +124,18 @@ class HomeFragment : Fragment() {
                 context?.let { Toast.makeText(it, "Lỗi tải dữ liệu: ${error.message}", Toast.LENGTH_SHORT).show() }
             }
         })
+    }
+
+    // Đồng bộ email vào node users nếu trước đây chưa có (để tìm kiếm Gmail hoạt động)
+    private fun ensureEmailSynced() {
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val email = user.email?.trim()?.lowercase() ?: return
+        val uid = user.uid
+        dbRef.child(uid).child("email").get().addOnSuccessListener { snap ->
+            val existing = snap.getValue(String::class.java)
+            if (existing.isNullOrBlank()) {
+                dbRef.child(uid).child("email").setValue(email)
+            }
+        }
     }
 }

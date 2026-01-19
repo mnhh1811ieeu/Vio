@@ -35,6 +35,12 @@ class ChatAdapter(
         return ChatViewHolder(view)
     }
 
+    override fun getItemId(position: Int): Long = position.toLong()
+
+    init {
+        setHasStableIds(true)
+    }
+
     override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
         val message = messages[position]
 
@@ -71,8 +77,8 @@ class ChatAdapter(
                     // ===> SỬ DỤNG BACKGROUND MÀU XANH <===
                     tv.setBackgroundResource(R.drawable.bg_original_sender)
 
-                    // Nền xanh đậm nên để chữ TRẮNG
-                    tv.setTextColor(Color.WHITE)
+                    // Nền sáng hơn -> dùng chữ đậm
+                    tv.setTextColor(Color.parseColor("#0F172A"))
                     tv.textSize = 13f
 
                     val params = LinearLayout.LayoutParams(
@@ -126,8 +132,8 @@ class ChatAdapter(
                     // ===> SỬ DỤNG BACKGROUND MÀU XÁM NHẠT <===
                     tv.setBackgroundResource(R.drawable.bg_original_receiver)
 
-                    // Nền sáng nên để chữ ĐEN (hoặc xám đậm)
-                    tv.setTextColor(Color.parseColor("#333333"))
+                    // Nền sáng -> chữ đậm
+                    tv.setTextColor(Color.parseColor("#0F172A"))
                     tv.textSize = 13f
 
                     val params = LinearLayout.LayoutParams(

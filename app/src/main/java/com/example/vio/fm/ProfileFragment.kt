@@ -16,6 +16,7 @@ import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.example.vio.R
 import com.example.vio.data.CloudinaryImageService
+import com.example.vio.data.UserCache
 import com.example.vio.databinding.FragmentProfileBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.userProfileChangeRequest
@@ -32,10 +33,13 @@ class ProfileFragment : Fragment() {
     // Firebase instances
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance()
+    private val usersRef = database.getReference("users")
 
     private var selectedImageUri: Uri? = null
     private var cameraImageUri: Uri? = null
     private var hasNewPhoto = false
+    private var lastNameChangeAt: Long? = null
+    private var originalName: String? = null
 
     private val pickGallery = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { startCrop(it) }
@@ -83,6 +87,7 @@ class ProfileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         prefillFromAccount()
+        loadUserMeta()
 
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
 
@@ -111,6 +116,37 @@ class ProfileFragment : Fragment() {
                 .circleCrop()
                 .into(binding.imgAvatar)
         }
+    }
+
+    private fun loadUserMeta() {
+        val uid = auth.currentUser?.uid ?: return
+        usersRef.child(uid).addListenerForSingleValueEvent(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                originalName = snapshot.child("name").getValue(String::class.java)
+                lastNameChangeAt = snapshot.child("lastNameChange").getValue(Long::class.java)
+
+                val nameDb = originalName
+                if (!nameDb.isNullOrBlank()) {
+                    binding.edtName.setText(nameDb)
+                }
+
+                val photoUrl = snapshot.child("photo").getValue(String::class.java)
+                if (!photoUrl.isNullOrBlank()) {
+                    Glide.with(this@ProfileFragment)
+                        .load(photoUrl)
+                        .thumbnail(0.2f)
+                        .override(256)
+                        .placeholder(R.drawable.img_1)
+                        .error(R.drawable.img_1)
+                        .circleCrop()
+                        .into(binding.imgAvatar)
+                }
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                // no-op
+            }
+        })
     }
 
     // Logout được xử lý ở Menu, không thực hiện tại đây
@@ -151,18 +187,42 @@ class ProfileFragment : Fragment() {
 
         binding.btnSave.isEnabled = false
         binding.btnSave.alpha = 0.6f
+        val uid = user.uid
+        val userNode = usersRef.child(uid)
 
-        if (hasNewPhoto) {
-            uploadPhotoThenSave(user.uid, name)
-        } else {
-            updateProfile(user.uid, name, user.photoUrl?.toString())
+        userNode.get().addOnSuccessListener { snapshot ->
+            val existingName = snapshot.child("name").getValue(String::class.java) ?: ""
+            val lastChange = snapshot.child("lastNameChange").getValue(Long::class.java) ?: 0L
+            val nameChanged = name != existingName
+            if (nameChanged) {
+                val now = System.currentTimeMillis()
+                val interval = 3L * 24 * 60 * 60 * 1000 // 3 ngày
+                val delta = now - lastChange
+                if (lastChange != 0L && delta < interval) {
+                    val daysLeft = ((interval - delta) / (24 * 60 * 60 * 1000) + 1)
+                    Toast.makeText(requireContext(), "Bạn chỉ được đổi tên 3 ngày một lần. Còn khoảng $daysLeft ngày.", Toast.LENGTH_SHORT).show()
+                    binding.btnSave.isEnabled = true
+                    binding.btnSave.alpha = 1f
+                    return@addOnSuccessListener
+                }
+            }
+
+            if (hasNewPhoto) {
+                uploadPhotoThenSave(uid, name, nameChanged)
+            } else {
+                updateProfile(uid, name, user.photoUrl?.toString(), nameChanged)
+            }
+        }.addOnFailureListener {
+            Toast.makeText(requireContext(), "Không tải được thông tin người dùng", Toast.LENGTH_SHORT).show()
+            binding.btnSave.isEnabled = true
+            binding.btnSave.alpha = 1f
         }
     }
 
-    private fun uploadPhotoThenSave(uid: String, name: String) {
+    private fun uploadPhotoThenSave(uid: String, name: String, nameChanged: Boolean) {
         val photoUri = selectedImageUri
         if (photoUri == null) {
-            updateProfile(uid, name, null)
+            updateProfile(uid, name, null, nameChanged)
             return
         }
 
@@ -174,7 +234,7 @@ class ProfileFragment : Fragment() {
 
         CloudinaryImageService.uploadAvatar(ctx, uid, photoUri) { result ->
             result.onSuccess { url ->
-                updateProfile(uid, name, url)
+                updateProfile(uid, name, url, nameChanged)
             }.onFailure { err ->
                 val b = _binding ?: return@onFailure
                 context?.let { Toast.makeText(it, "Upload thất bại: ${err.message}", Toast.LENGTH_SHORT).show() }
@@ -217,9 +277,15 @@ class ProfileFragment : Fragment() {
         )
     }
 
-    private fun updateProfile(uid: String, name: String, photoUrl: String?) {
+    private fun updateProfile(uid: String, name: String, photoUrl: String?, nameChanged: Boolean) {
         val updates = hashMapOf<String, Any>("name" to name)
         photoUrl?.let { updates["photo"] = it }
+        val now = System.currentTimeMillis()
+        if (nameChanged) {
+            updates["lastNameChange"] = now
+            originalName = name
+            lastNameChangeAt = now
+        }
 
         FirebaseDatabase.getInstance().getReference("users")
             .child(uid)
@@ -227,6 +293,7 @@ class ProfileFragment : Fragment() {
             .addOnSuccessListener {
                 if (!isAdded) return@addOnSuccessListener
                 updateAuthProfile(name, photoUrl)
+                UserCache.put(uid, name, photoUrl)
                 context?.let { Toast.makeText(it, "Đã lưu", Toast.LENGTH_SHORT).show() }
                 hasNewPhoto = false
             }

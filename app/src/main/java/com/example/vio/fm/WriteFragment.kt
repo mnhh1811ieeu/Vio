@@ -18,6 +18,8 @@ import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
@@ -29,8 +31,11 @@ import com.google.firebase.database.ValueEventListener
 import com.example.vio.MessageModel
 import com.example.vio.R
 import com.example.vio.adapter.ChatAdapter
+import com.example.vio.data.UserCache
 import com.example.vio.databinding.FragmentWriteBinding
 import com.example.vio.fm.WriteFragmentArgs
+import com.example.vio.vm.UsersViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 
 
@@ -62,7 +67,12 @@ class WriteFragment : Fragment() {
     private lateinit var receiverPhoto: String
     private lateinit var chatRoomId: String
     private lateinit var currentUserName: String
+    private var canChat: Boolean = false
     private var editingMessage: MessageModel? = null // nếu khác null nghĩa là đang sửa một tin nhắn
+    private val userNames: MutableMap<String, String> = mutableMapOf()
+    private val friendsRef = FirebaseDatabase.getInstance().getReference("friends")
+    private var friendshipListener: ValueEventListener? = null
+    private val usersVm: UsersViewModel by viewModels()
 
 
     override fun onCreateView(
@@ -100,14 +110,23 @@ class WriteFragment : Fragment() {
         binding.chatRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = chatAdapter
+            setHasFixedSize(true)
         }
 
-        // 6) Đánh dấu đã xem và bắt đầu lắng nghe realtime tin nhắn
+        // 6) Đánh dấu đã xem, tải tên động và bắt đầu lắng nghe realtime tin nhắn
+        preloadNamesFromCache()
+        collectNamesFromVm()
+        usersVm.loadIfNeeded()
         markMessagesAsSeen()
         listenForMessages()
+        observeFriendship()
 
         // 7) Gửi tin nhắn hoặc cập nhật tin nhắn đang sửa
         binding.btnSend.setOnClickListener {
+            if (!canChat) {
+                Toast.makeText(requireContext(), getString(R.string.add_friend_first), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val newText = binding.edtMessage.text.toString().trim()
             if (newText.isEmpty()) return@setOnClickListener
 
@@ -350,6 +369,10 @@ class WriteFragment : Fragment() {
 
                         val message = child.getValue(MessageModel::class.java)
                         if (message != null) {
+                            val displayName = userNames[message.senderId]
+                            if (!displayName.isNullOrBlank()) {
+                                message.senderName = displayName
+                            }
                             messages.add(message)
                         }
                     }
@@ -367,6 +390,28 @@ class WriteFragment : Fragment() {
                     Log.e("WriteFragment", "Error listening for messages: ${error.message}")
                 }
             })
+    }
+
+    private fun preloadNamesFromCache() {
+        val cached = UserCache.namesSnapshot()
+        if (cached.isNotEmpty()) {
+            userNames.putAll(cached)
+        }
+    }
+
+    private fun collectNamesFromVm() {
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            usersVm.users.collectLatest { map ->
+                if (map.isNotEmpty()) {
+                    userNames.clear()
+                    for ((uid, summary) in map) {
+                        userNames[uid] = summary.name
+                    }
+                    UserCache.putAll(map.mapValues { it.value.name to it.value.photo })
+                    chatAdapter.notifyDataSetChanged()
+                }
+            }
+        }
     }
 
     private fun editMessage(message: MessageModel) {
@@ -408,6 +453,28 @@ class WriteFragment : Fragment() {
         })
     }
 
+    private fun observeFriendship() {
+        friendshipListener?.let { friendsRef.removeEventListener(it) }
+
+        friendshipListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val safeBinding = _binding ?: return
+                val forward = snapshot.child(senderId).child(receiverId).getValue(Boolean::class.java) == true
+                val backward = snapshot.child(receiverId).child(senderId).getValue(Boolean::class.java) == true
+                canChat = forward || backward
+                safeBinding.btnSend.isEnabled = canChat
+                safeBinding.edtMessage.isEnabled = canChat
+                safeBinding.tvChatRestriction.visibility = if (canChat) View.GONE else View.VISIBLE
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // No-op
+            }
+        }
+
+        friendsRef.addValueEventListener(friendshipListener as ValueEventListener)
+    }
+
     private fun shareText(text: String) {
         // Chia sẻ nội dung văn bản qua các ứng dụng khác bằng ACTION_SEND
         val sendIntent = android.content.Intent().apply {
@@ -422,6 +489,7 @@ class WriteFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        friendshipListener?.let { friendsRef.removeEventListener(it) }
         _binding = null // giải phóng binding khi view bị destroy
     }
 }

@@ -25,7 +25,11 @@ class ChatListFragment : Fragment() {
     private val userList = ArrayList<User>()
     private lateinit var adapter: UsersAdapter
     private val dbRef = FirebaseDatabase.getInstance().getReference("users")
+    private val friendsRef = FirebaseDatabase.getInstance().getReference("friends")
     private val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
+    private var friendsListener: ValueEventListener? = null
+    private var chatsListener: ValueEventListener? = null
+    private var friendIds: Set<String> = emptySet()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -66,59 +70,72 @@ class ChatListFragment : Fragment() {
             return
         }
 
+        friendsListener?.let { friendsRef.child(currentUid).removeEventListener(it) }
+        friendsListener = object : ValueEventListener {
+            override fun onDataChange(friendsSnapshot: DataSnapshot) {
+                val ids = mutableSetOf<String>()
+                for (ownerSnap in friendsSnapshot.children) {
+                    val ownerId = ownerSnap.key ?: continue
+                    for (child in ownerSnap.children) {
+                        val friendId = child.key ?: continue
+                        if (ownerId == currentUid) ids.add(friendId)
+                        if (friendId == currentUid) ids.add(ownerId)
+                    }
+                }
+
+                friendIds = ids
+
+                if (friendIds.isEmpty()) {
+                    userList.clear()
+                    adapter.notifyDataSetChanged()
+                    hideSkeleton()
+                    return
+                }
+
+                listenForChats(currentUid)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatListFragment", "Error fetching friends: ${error.message}")
+                hideSkeleton()
+            }
+        }
+        friendsRef.addValueEventListener(friendsListener!!)
+    }
+
+    private fun listenForChats(currentUid: String) {
         val chatsRef = FirebaseDatabase.getInstance().getReference("chats")
-        chatsRef.addValueEventListener(object : ValueEventListener {
+        chatsListener?.let { chatsRef.removeEventListener(it) }
+        chatsListener = object : ValueEventListener {
             override fun onDataChange(chatSnapshot: DataSnapshot) {
                 val unreadMap: MutableMap<String, Int> = mutableMapOf()
+                friendIds.forEach { unreadMap[it] = 0 }
+
+                for (chatRoom in chatSnapshot.children) {
+                    val chatRoomId = chatRoom.key
+                    val lastMessageSnap = chatRoom.children.lastOrNull() ?: continue
+                    val message = lastMessageSnap.getValue(MessageModel::class.java) ?: continue
+
+                    if (message.receiverId == currentUid && friendIds.contains(message.senderId)) {
+                        val expectedChatRoomId = getChatRoomId(message.senderId, message.receiverId)
+                        if (chatRoomId == expectedChatRoomId) {
+                            if (message.kordim) {
+                                unreadMap[message.senderId] = 0
+                            } else {
+                                unreadMap[message.senderId] = (unreadMap[message.senderId] ?: 0) + 1
+                            }
+                        }
+                    }
+                }
+
                 dbRef.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        for (snap in snapshot.children) {
-                            val user = snap.getValue(User::class.java)
-                            if (user != null && user.uid != currentUid) {
-                                unreadMap[user.uid] = 0
-                            }
-                        }
-
-                        for (chatRoom in chatSnapshot.children) {
-                            val chatRoomId = chatRoom.key
-                            for (msgSnap in chatRoom.children) {
-                                val lastMessageSnap = chatRoom.children.last()
-                                val message = lastMessageSnap.getValue(MessageModel::class.java)
-
-                                if (message != null && message.receiverId == currentUid) {
-                                    val expectedChatRoomId =
-                                        getChatRoomId(message.senderId, message.receiverId)
-                                    if (chatRoomId == expectedChatRoomId) {
-                                        if (message.kordim) {
-                                            unreadMap[message.senderId] = 0
-                                            Log.d(
-                                                "ChatListFragment",
-                                                "Message isSeen: true for senderId: ${message.senderId}, set unreadCount to 0"
-                                            )
-                                        } else {
-                                            unreadMap[message.senderId] =
-                                                (unreadMap[message.senderId] ?: 0) + 1
-                                            Log.d(
-                                                "ChatListFragment",
-                                                "Message isSeen: false for senderId: ${message.senderId}, unreadCount: ${unreadMap[message.senderId]}"
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Log.d("ChatListFragment", "Unread counts: $unreadMap")
-
                         userList.clear()
                         for (snap in snapshot.children) {
                             val user = snap.getValue(User::class.java)
-                            if (user != null && user.uid != currentUid) {
+                            if (user != null && friendIds.contains(user.uid)) {
                                 user.unreadCount = unreadMap[user.uid] ?: 0
                                 userList.add(user)
-                                Log.d(
-                                    "ChatListFragment",
-                                    "User: ${user.name}, UnreadCount: ${user.unreadCount}"
-                                )
                             }
                         }
                         adapter.notifyDataSetChanged()
@@ -136,7 +153,8 @@ class ChatListFragment : Fragment() {
                 Log.e("ChatListFragment", "Error fetching chats: ${error.message}")
                 hideSkeleton()
             }
-        })
+        }
+        chatsRef.addValueEventListener(chatsListener!!)
     }
 
     private fun getChatRoomId(senderId: String, receiverId: String): String {
@@ -188,6 +206,15 @@ class ChatListFragment : Fragment() {
         if (index != -1 && userList[index].unreadCount > 0) {
             userList[index].unreadCount = 0
             adapter.notifyItemChanged(index)
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        val chatsRef = FirebaseDatabase.getInstance().getReference("chats")
+        chatsListener?.let { chatsRef.removeEventListener(it) }
+        currentUserUid?.let { uid ->
+            friendsListener?.let { friendsRef.removeEventListener(it) }
         }
     }
 }

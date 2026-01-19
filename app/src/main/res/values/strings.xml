@@ -44,5 +44,6 @@
     <string name="edited_hide_history">Edited • Hide history</string>
     <string name="edit_not_allowed">You can only edit your own message</string>
     <string name="back_button_cd">Back</string>
+    <string name="add_friend_first">Bạn cần kết bạn trước khi nhắn tin</string>
 
 </resources>

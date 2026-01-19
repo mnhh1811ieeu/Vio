@@ -13,17 +13,33 @@
         android:orientation="vertical"
         android:paddingBottom="30dp">
 
-        <TextView
-            android:id="@+id/menuTitle"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="20dp"
-            android:paddingBottom="16dp"
-            android:text="Menu"
-            android:textColor="#000000"
-            android:textSize="28sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="12dp">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="10dp"
+                android:src="@drawable/abc_ic_ab_back_material"
+                app:tint="#000000"
+                android:contentDescription="Back" />
+
+            <TextView
+                android:id="@+id/menuTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Menu"
+                android:textColor="#000000"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -117,47 +133,6 @@
                         app:tint="#BDBDBD"/>
                 </LinearLayout>
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/menuLogout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="8dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#E0E0E0"
-            app:strokeWidth="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="18dp">
-
-                <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:src="@android:drawable/ic_lock_power_off"
-                    app:tint="#E53935" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="16dp"
-                    android:text="Đăng xuất"
-                    android:textColor="#E53935"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -114,10 +114,12 @@ class LoginFragment : Fragment() {
         val uid = user.uid
         val name = user.displayName ?: getString(R.string.unknown)
         val photo = user.photoUrl?.toString() ?: ""
+        val email = user.email?.trim()?.lowercase() ?: ""
 
         val map = mapOf(
             "uid" to uid,
             "name" to name,
+            "email" to email,
             "photo" to photo
         )
 

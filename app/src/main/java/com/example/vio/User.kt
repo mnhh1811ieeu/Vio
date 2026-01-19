@@ -7,6 +7,9 @@ data class User(
     val uid: String = "",
     val name: String = "",
 
+    // Email được lưu để phục vụ tìm kiếm bạn bè theo Gmail
+    val email: String = "",
+
     @get:PropertyName("photo")
     @set:PropertyName("photo")
     var imageUrl: String? = null,

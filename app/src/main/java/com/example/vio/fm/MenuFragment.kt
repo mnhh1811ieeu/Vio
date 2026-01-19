@@ -27,20 +27,16 @@ class MenuFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.btnBack.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
         binding.menuProfile.setOnClickListener {
             findNavController().navigate(R.id.profileFragment)
         }
 
         binding.menuSettings.setOnClickListener {
             findNavController().navigate(R.id.settingsFragment)
-        }
-
-        binding.menuLogout.setOnClickListener {
-            FirebaseAuth.getInstance().signOut()
-            val options = navOptions {
-                popUpTo(R.id.my_nav) { inclusive = false }
-            }
-            findNavController().navigate(R.id.loginFragment, null, options)
         }
     }
 
