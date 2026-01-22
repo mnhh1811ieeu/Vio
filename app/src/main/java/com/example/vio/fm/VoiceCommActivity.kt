@@ -4,140 +4,153 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.speech.tts.TextToSpeech
+import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.vio.databinding.ActivityVoiceCommBinding
-import java.util.Locale
 
-class VoiceCommActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class VoiceCommActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityVoiceCommBinding
-
-    // Công cụ chuyển văn bản thành giọng nói (Chị Google)
-    private var tts: TextToSpeech? = null
-
-    // Công cụ nhận diện giọng nói
     private var speechRecognizer: SpeechRecognizer? = null
+    private var speechIntent: Intent? = null
+    private var isUserPaused = false
+    private var isListening = false
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val restartRunnable = Runnable { startListening() }
+    private val fullTranscript = StringBuilder()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityVoiceCommBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 1. Khởi tạo TextToSpeech
-        tts = TextToSpeech(this, this)
+        // Giữ màn hình sáng
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // 2. Khởi tạo SpeechRecognizer
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
         }
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
-        setupSpeechRecognizer()
 
-        // 3. Xử lý sự kiện click
+        setupSpeechRecognizer()
         setupListeners()
     }
 
-    private fun setupListeners() {
-        binding.btnBackVoice.setOnClickListener { finish() }
-
-        // Bấm nút Micro để bắt đầu nói
-        binding.btnMic.setOnClickListener {
-            startListening()
-        }
-
-        // Bấm nút Loa để đọc lại văn bản đang hiện trên màn hình
-        binding.btnSpeaker.setOnClickListener {
-            val textToRead = binding.tvLiveText.text.toString()
-            speakOut(textToRead)
-        }
-
-        // Bấm nút Bàn phím (Giả lập mở keyboard)
-        binding.btnKeyboard.setOnClickListener {
-            Toast.makeText(this, "Chức năng nhập phím đang phát triển", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // --- CẤU HÌNH NHẬN DIỆN GIỌNG NÓI (Speech-to-Text) ---
     private fun setupSpeechRecognizer() {
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            // Cấu hình thời gian chờ
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 5000L)
+        }
+
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                binding.tvStatus.text = "Đang nghe... Hãy nói đi!"
-                binding.imgSoundWave.alpha = 1.0f // Làm sáng icon sóng âm
+                isListening = true
+                binding.btnMic.backgroundTintList = ContextCompat.getColorStateList(this@VoiceCommActivity, android.R.color.holo_green_light)
             }
-
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {
-                binding.tvStatus.text = "Đang xử lý..."
-                binding.imgSoundWave.alpha = 0.5f
-            }
+            override fun onEndOfSpeech() { isListening = false }
 
             override fun onError(error: Int) {
-                binding.tvStatus.text = "Lỗi nhận diện. Hãy thử lại."
-                binding.imgSoundWave.alpha = 0.5f
+                isListening = false
+                restartListening()
             }
 
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
-                    val text = matches[0] // Lấy kết quả chính xác nhất
-                    binding.tvLiveText.text = text
-                    binding.tvStatus.text = "Hoàn tất."
+                    val formattedText = formatText(matches[0])
+                    fullTranscript.append(formattedText)
+                    binding.tvLiveText.text = fullTranscript.toString()
+                    // Đã xóa lệnh cuộn ở đây
                 }
+                restartListening()
             }
 
-            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onPartialResults(partialResults: Bundle?) {
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    // Ẩn mic khi bắt đầu nói
+                    if (binding.btnMic.visibility == View.VISIBLE) {
+                        binding.btnMic.visibility = View.GONE
+                    }
+                    binding.tvLiveText.text = "$fullTranscript ${matches[0]}"
+                    // Đã xóa lệnh cuộn ở đây
+                }
+            }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
     }
 
-    private fun startListening() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault()) // Tự động chọn ngôn ngữ máy
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hãy nói điều gì đó...")
-
-        try {
-            speechRecognizer?.startListening(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Thiết bị không hỗ trợ nhận diện giọng nói", Toast.LENGTH_SHORT).show()
-        }
+    private fun formatText(input: String): String {
+        var text = input.trim()
+        text = text.replace(" phẩy", ",", true)
+        text = text.replace(" chấm", ".", true)
+        text = text.replace(" hỏi chấm", "?", true)
+        if (fullTranscript.isNotEmpty()) return " $text"
+        return text.replaceFirstChar { it.uppercase() }
     }
 
-    // --- CẤU HÌNH ĐỌC VĂN BẢN (Text-to-Speech) ---
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("vi", "VN")) // Cố gắng set tiếng Việt
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // Nếu không có tiếng Việt thì fallback về tiếng Anh US
-                tts?.setLanguage(Locale.US)
+    private fun setupListeners() {
+        binding.btnBackVoice.setOnClickListener { finish() }
+
+        binding.btnMic.setOnClickListener {
+            isUserPaused = false
+            startListening()
+            Toast.makeText(this, "Đang nghe...", Toast.LENGTH_SHORT).show()
+        }
+
+        // Chạm vào chữ để dừng và hiện lại Mic
+        binding.tvLiveText.setOnClickListener {
+            if (!isUserPaused) {
+                isUserPaused = true
+                stopListening()
+                binding.btnMic.visibility = View.VISIBLE
+                binding.btnMic.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.darker_gray)
             }
         }
     }
 
-    private fun speakOut(text: String) {
-        if (text.isNotEmpty()) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
-        } else {
-            Toast.makeText(this, "Không có nội dung để đọc", Toast.LENGTH_SHORT).show()
+    private fun startListening() {
+        handler.removeCallbacks(restartRunnable)
+        if (!isUserPaused && !isListening) {
+            try {
+                runOnUiThread { speechRecognizer?.startListening(speechIntent) }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
+    private fun stopListening() {
+        handler.removeCallbacks(restartRunnable)
+        try {
+            speechRecognizer?.stopListening()
+            isListening = false
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    private fun restartListening() {
+        if (!isUserPaused) handler.postDelayed(restartRunnable, 50)
+    }
+
     override fun onDestroy() {
-        // Giải phóng tài nguyên khi thoát màn hình để tránh rò rỉ bộ nhớ
-        if (tts != null) {
-            tts?.stop()
-            tts?.shutdown()
-        }
-        speechRecognizer?.destroy()
         super.onDestroy()
+        speechRecognizer?.destroy()
     }
 }

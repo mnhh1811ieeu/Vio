@@ -102,7 +102,7 @@
                     style="@style/HomeIconStyle"
                     app:tint="#388E3C" />
                 <TextView
-                    android:text="Giao tiếp\nGiọng nói"
+                    android:text="Chép lời\ntrực tiếp"
                     style="@style/HomeTextStyle" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

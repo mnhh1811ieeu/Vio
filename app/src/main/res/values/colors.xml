@@ -10,4 +10,5 @@
     <color name="onPrimary">#F5FAFF</color>
     <color name="cardStroke">#C7D2E5</color>
     <color name="badge">#E53935</color>
+    <color name="purple_500">#6200EE</color>
 </resources>

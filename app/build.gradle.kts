@@ -77,7 +77,10 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.play.services.auth)
-
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Gson Converter: Để tự động chuyển đổi dữ liệu JSON sang Kotlin Object
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.intuit.sdp:sdp-android:1.1.0")
     implementation("com.intuit.ssp:ssp-android:1.1.0")
     implementation("androidx.concurrent:concurrent-futures:1.1.0")
