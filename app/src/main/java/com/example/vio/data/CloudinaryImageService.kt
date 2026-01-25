@@ -13,7 +13,6 @@ import com.example.vio.BuildConfig
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.concurrent.thread
-import kotlin.concurrent.thread
 
 object CloudinaryImageService {
 
@@ -44,6 +43,48 @@ object CloudinaryImageService {
         )
         MediaManager.init(context.applicationContext, config)
         return true
+    }
+
+    fun uploadAudio(
+        context: Context,
+        chatRoomId: String,
+        file: File,
+        onResult: (Result<String>) -> Unit
+    ) {
+        if (!ensureInitialized(context)) {
+            onResult(Result.failure(IllegalStateException("Cloudinary not configured")))
+            return
+        }
+
+        thread {
+            MediaManager.get().upload(file.absolutePath)
+                .option("resource_type", "video") // Cloudinary xử lý audio qua type video
+                .option("folder", "voice_messages/$chatRoomId")
+                .option("overwrite", true)
+                .callback(object : UploadCallback {
+                    override fun onStart(requestId: String?) {}
+                    override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {}
+                    override fun onReschedule(requestId: String?, error: ErrorInfo?) {}
+
+                    override fun onError(requestId: String?, error: ErrorInfo?) {
+                        mainHandler.post {
+                            onResult(Result.failure(IllegalStateException(error?.description ?: "Upload failed")))
+                        }
+                    }
+
+                    override fun onSuccess(requestId: String?, resultData: MutableMap<Any?, Any?>?) {
+                        val url = resultData?.get("secure_url") as? String
+                        mainHandler.post {
+                            if (url.isNullOrBlank()) {
+                                onResult(Result.failure(IllegalStateException("Missing secure_url")))
+                            } else {
+                                onResult(Result.success(url))
+                            }
+                        }
+                    }
+                })
+                .dispatch()
+        }
     }
 
     fun uploadAvatar(

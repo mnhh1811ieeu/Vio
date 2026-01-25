@@ -41,6 +41,10 @@
             android:id="@+id/action_homeFragment_to_contactsFragment"
             app:destination="@id/contactsFragment" />
 
+        <action
+            android:id="@+id/action_homeFragment_to_AICameraFragment"
+            app:destination="@id/AICameraFragment" />
+
     </fragment>
 
     <fragment
@@ -99,5 +103,11 @@
         android:name="com.example.vio.fm.ProfileFragment"
         android:label="fragment_profile"
         tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/AICameraFragment"
+        android:name="com.example.vio.fm.AICameraFragment"
+        android:label="Mắt Thần AI"
+        tools:layout="@layout/fragment_a_i_camera_activity" />
 
 </navigation>

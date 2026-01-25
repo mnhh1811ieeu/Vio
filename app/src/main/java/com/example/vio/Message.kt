@@ -2,6 +2,7 @@ package com.example.vio
 
 
 data class MessageModel(
+    var messageId: String? = null,
     var message: String = "",
     var senderId: String = "",
     var senderName: String = "",
@@ -9,6 +10,12 @@ data class MessageModel(
     var receiverId: String = "",
 
     var kordim: Boolean = false, // đã xem
+
+    // Loại tin nhắn: text hoặc voice
+    var type: String = "text",
+    // Thông tin voice (nếu type = voice)
+    var audioUrl: String? = null,
+    var audioDuration: Long? = null,
 
     // Trường phục vụ chức năng chỉnh sửa
     var edited: Boolean = false,          // true nếu tin nhắn đã được sửa

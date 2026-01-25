@@ -45,5 +45,16 @@
     <string name="edit_not_allowed">You can only edit your own message</string>
     <string name="back_button_cd">Back</string>
     <string name="add_friend_first">Bạn cần kết bạn trước khi nhắn tin</string>
+    <string name="recording_hint">Đang ghi âm... Nhấn Gửi để gửi</string>
+    <string name="recording_start">Bắt đầu ghi âm</string>
+    <string name="recording_saved">Đã lưu ghi âm. Nhấn Gửi để gửi</string>
+    <string name="recording_error">Không thể ghi âm, vui lòng thử lại</string>
+    <string name="voice_permission_denied">Ứng dụng cần quyền ghi âm để gửi voice</string>
+    <string name="voice_permission_rationale">Cho phép ghi âm để gửi voice message</string>
+    <string name="voice_uploading">Đang tải voice...</string>
+    <string name="voice_message_label">Tin nhắn thoại</string>
+    <string name="voice_sent">Đã gửi voice message</string>
+    <string name="voice_send_error">Lỗi gửi voice: %1$s</string>
+    <string name="voice_play_error">Không phát được voice, thử lại</string>
 
 </resources>

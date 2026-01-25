@@ -54,9 +54,17 @@ class HomeFragment : Fragment() {
             startActivity(Intent(requireContext(), VoiceCommActivity::class.java))
         }
 
-        // 3. Nút Trợ lý ảo (Ví dụ)
+        // 3. Nút Trợ lý ảo (Mắt Thần AI)
         binding.btnAssistant.setOnClickListener {
-            Toast.makeText(context, "Tính năng đang phát triển", Toast.LENGTH_SHORT).show()
+            try {
+                // SỬA THÀNH CÁCH NÀY:
+                // R.id.AICameraFragment phải trùng với ID bạn vừa đặt trong file navigation xml ở Bước 1
+                findNavController().navigate(R.id.AICameraFragment)
+            } catch (e: Exception) {
+                // Nếu chưa cấu hình xong Bước 1 mà chạy thì sẽ vào đây
+                Toast.makeText(context, "Lỗi điều hướng: ${e.message}", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            }
         }
 
         // 4. Nút Tạo Chat Mới (Điều hướng bằng Navigation Component)

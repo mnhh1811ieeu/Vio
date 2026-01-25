@@ -48,6 +48,40 @@
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
 
+        <LinearLayout
+            android:id="@+id/youVoiceLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_sender"
+            android:maxWidth="320dp"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/youVoicePlay"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_original_sender"
+                android:padding="6dp"
+                android:src="@drawable/ic_play"
+                android:tint="#0F172A" />
+
+            <TextView
+                android:id="@+id/youVoiceDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="0:00"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+        </LinearLayout>
+
         <!-- Info 'Đã chỉnh sửa • Xem/Ẩn bản gốc' -->
         <TextView
             android:id="@+id/youEditedInfo"
@@ -112,6 +146,40 @@
             android:text="@string/message"
             android:textColor="#111827"
             android:textSize="16sp" />
+
+        <LinearLayout
+            android:id="@+id/otherVoiceLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_receiver"
+            android:maxWidth="320dp"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/otherVoicePlay"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_original_receiver"
+                android:padding="6dp"
+                android:src="@drawable/ic_play"
+                android:tint="#0F172A" />
+
+            <TextView
+                android:id="@+id/otherVoiceDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="0:00"
+                android:textColor="#111827"
+                android:textSize="15sp" />
+        </LinearLayout>
 
         <!-- Info 'Đã chỉnh sửa • Xem/Ẩn bản gốc' -->
         <TextView

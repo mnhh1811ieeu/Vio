@@ -1,11 +1,13 @@
 package com.example.vio.adapter
 
 import android.graphics.Color
+import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.vio.MessageModel
 import com.example.vio.R
@@ -13,19 +15,28 @@ import com.example.vio.R
 class ChatAdapter(
     private val messages: MutableList<MessageModel>,
     private val currentUserId: String,
-    private val onMessageLongClick: (View, Int, MessageModel) -> Unit
+    private val onMessageLongClick: (View, Int, MessageModel) -> Unit,
+    private val onVoiceClick: (MessageModel) -> Unit
 ) : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
+
+    private var playingMessageId: String? = null
 
     inner class ChatViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val youLayout = view.findViewById<LinearLayout>(R.id.youMessageLayout)
         val youName = view.findViewById<TextView>(R.id.youName)
         val youMessage = view.findViewById<TextView>(R.id.youMessage)
+        val youVoiceLayout = view.findViewById<LinearLayout>(R.id.youVoiceLayout)
+        val youVoicePlay = view.findViewById<ImageView>(R.id.youVoicePlay)
+        val youVoiceDuration = view.findViewById<TextView>(R.id.youVoiceDuration)
         val youHistoryContainer = view.findViewById<LinearLayout>(R.id.youHistoryContainer)
         val youEditedInfo = view.findViewById<TextView>(R.id.youEditedInfo)
 
         val otherLayout = view.findViewById<LinearLayout>(R.id.otherMessageLayout)
         val otherName = view.findViewById<TextView>(R.id.otherName)
         val otherMessage = view.findViewById<TextView>(R.id.otherMessage)
+        val otherVoiceLayout = view.findViewById<LinearLayout>(R.id.otherVoiceLayout)
+        val otherVoicePlay = view.findViewById<ImageView>(R.id.otherVoicePlay)
+        val otherVoiceDuration = view.findViewById<TextView>(R.id.otherVoiceDuration)
         val otherHistoryContainer = view.findViewById<LinearLayout>(R.id.otherHistoryContainer)
         val otherEditedInfo = view.findViewById<TextView>(R.id.otherEditedInfo)
     }
@@ -52,14 +63,34 @@ class ChatAdapter(
             holder.otherLayout.visibility = View.GONE
 
             holder.youName.setText(R.string.you)
-            holder.youMessage.text = message.message
+            if (message.type == "voice" && message.audioUrl != null) {
+                holder.youMessage.visibility = View.GONE
+                holder.youVoiceLayout.visibility = View.VISIBLE
+                holder.youVoiceDuration.text = formatDuration(message.audioDuration)
+                val isPlaying = message.messageId != null && message.messageId == playingMessageId
+                styleVoiceLayout(holder.youVoiceLayout, holder.youVoicePlay, isPlaying, true)
+                holder.youVoiceLayout.setOnClickListener { onVoiceClick(message) }
+                holder.youVoicePlay.setOnClickListener { onVoiceClick(message) }
+                holder.youVoiceLayout.setOnLongClickListener {
+                    onMessageLongClick(it, position, message)
+                    true
+                }
+                holder.youVoicePlay.setOnLongClickListener {
+                    onMessageLongClick(it, position, message)
+                    true
+                }
+            } else {
+                holder.youMessage.visibility = View.VISIBLE
+                holder.youVoiceLayout.visibility = View.GONE
+                holder.youMessage.text = message.message
+            }
             // KHÔNG sửa background của youMessage (giữ nguyên giao diện chính)
 
             // --- Xử lý phần LỊCH SỬ ---
             holder.youHistoryContainer.removeAllViews()
             holder.youHistoryContainer.visibility = View.GONE
 
-            if (message.edited) {
+            if (message.edited && message.type == "text") {
                 holder.youEditedInfo.visibility = View.VISIBLE
                 holder.youEditedInfo.text = holder.view.context.getString(R.string.edited_view_history)
 
@@ -109,14 +140,34 @@ class ChatAdapter(
             holder.otherLayout.visibility = View.VISIBLE
 
             holder.otherName.text = message.senderName
-            holder.otherMessage.text = message.message
+            if (message.type == "voice" && message.audioUrl != null) {
+                holder.otherMessage.visibility = View.GONE
+                holder.otherVoiceLayout.visibility = View.VISIBLE
+                holder.otherVoiceDuration.text = formatDuration(message.audioDuration)
+                val isPlaying = message.messageId != null && message.messageId == playingMessageId
+                styleVoiceLayout(holder.otherVoiceLayout, holder.otherVoicePlay, isPlaying, false)
+                holder.otherVoiceLayout.setOnClickListener { onVoiceClick(message) }
+                holder.otherVoicePlay.setOnClickListener { onVoiceClick(message) }
+                holder.otherVoiceLayout.setOnLongClickListener {
+                    onMessageLongClick(it, position, message)
+                    true
+                }
+                holder.otherVoicePlay.setOnLongClickListener {
+                    onMessageLongClick(it, position, message)
+                    true
+                }
+            } else {
+                holder.otherMessage.visibility = View.VISIBLE
+                holder.otherVoiceLayout.visibility = View.GONE
+                holder.otherMessage.text = message.message
+            }
             // KHÔNG sửa background của otherMessage (giữ nguyên giao diện chính)
 
             // --- Xử lý phần LỊCH SỬ ---
             holder.otherHistoryContainer.removeAllViews()
             holder.otherHistoryContainer.visibility = View.GONE
 
-            if (message.edited) {
+            if (message.edited && message.type == "text") {
                 holder.otherEditedInfo.visibility = View.VISIBLE
                 holder.otherEditedInfo.text = holder.view.context.getString(R.string.edited_view_history)
 
@@ -166,6 +217,11 @@ class ChatAdapter(
         }
     }
 
+    fun setPlaying(messageId: String?) {
+        playingMessageId = messageId
+        notifyDataSetChanged()
+    }
+
     // Hàm phụ trợ để ẩn/hiện lịch sử gọn gàng hơn
     private fun toggleHistory(container: View, infoText: TextView) {
         if (container.visibility == View.VISIBLE) {
@@ -175,5 +231,26 @@ class ChatAdapter(
             container.visibility = View.VISIBLE
             infoText.text = infoText.context.getString(R.string.edited_hide_history)
         }
+    }
+
+    private fun formatDuration(durationMs: Long?): String {
+        if (durationMs == null || durationMs <= 0) return "0:00"
+        val totalSeconds = durationMs / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return "$minutes:${String.format("%02d", seconds)}"
+    }
+
+    private fun styleVoiceLayout(container: View, playView: ImageView, isPlaying: Boolean, isSelf: Boolean) {
+        val ctx = container.context
+        val activeBg = if (isSelf) R.drawable.bg_sender else R.drawable.bg_receiver
+        val idleBg = if (isSelf) R.drawable.bg_sender else R.drawable.bg_receiver
+        val activeTint = Color.parseColor(if (isSelf) "#FACC15" else "#F97316")
+        val idleTint = Color.parseColor("#0F172A")
+        container.setBackgroundResource(if (isPlaying) activeBg else idleBg)
+        playView.background = ContextCompat.getDrawable(ctx, if (isSelf) R.drawable.bg_original_sender else R.drawable.bg_original_receiver)
+        playView.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+        playView.setColorFilter(if (isPlaying) activeTint else idleTint)
+        container.alpha = if (isPlaying) 1f else 0.95f
     }
 }

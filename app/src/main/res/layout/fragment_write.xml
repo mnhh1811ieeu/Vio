@@ -104,6 +104,7 @@
         android:background="#FFFFFF"
         android:elevation="8dp"
         android:gravity="bottom"
+        android:orientation="horizontal"
         android:paddingStart="14dp"
         android:paddingTop="10dp"
         android:paddingEnd="14dp"
@@ -111,6 +112,36 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/recordVisualizer"
+            android:layout_width="30dp"
+            android:layout_height="48dp"
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:layout_marginEnd="10dp">
+
+            <View
+                android:id="@+id/recordBar1"
+                android:layout_width="6dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="4dp"
+                android:background="#F97316" />
+
+            <View
+                android:id="@+id/recordBar2"
+                android:layout_width="6dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="4dp"
+                android:background="#FB923C" />
+
+            <View
+                android:id="@+id/recordBar3"
+                android:layout_width="6dp"
+                android:layout_height="22dp"
+                android:background="#FDBA74" />
+        </LinearLayout>
 
         <EditText
             android:id="@+id/edtMessage"
@@ -129,6 +160,19 @@
             android:textColor="#0F172A"
             android:textColorHint="#9CA3AF"
             android:textSize="16sp" />
+
+        <ImageButton
+            android:id="@+id/btnMic"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_gravity="bottom"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/send_message_cd"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_mic"
+            app:tint="#EF4444" />
 
         <ImageButton
             android:id="@+id/btnSend"

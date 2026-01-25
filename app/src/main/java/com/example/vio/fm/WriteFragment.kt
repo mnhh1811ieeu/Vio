@@ -1,14 +1,19 @@
 package com.example.vio.fm
 
+import android.Manifest
+import android.animation.ValueAnimator
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.media.MediaPlayer // [MỚI] Import MediaPlayer
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -32,17 +37,21 @@ import com.google.firebase.database.ValueEventListener
 import com.example.vio.MessageModel
 import com.example.vio.R
 import com.example.vio.adapter.ChatAdapter
-import com.example.vio.api.RetrofitClient // [MỚI] Import API
+import com.example.vio.api.RetrofitClient
 import com.example.vio.data.UserCache
+import com.example.vio.data.CloudinaryImageService
 import com.example.vio.databinding.FragmentWriteBinding
 import com.example.vio.fm.WriteFragmentArgs
 import com.example.vio.vm.UsersViewModel
-import kotlinx.coroutines.Dispatchers // [MỚI] Coroutines
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch // [MỚI]
-import kotlinx.coroutines.withContext // [MỚI]
-import java.io.File // [MỚI] File IO
-import java.io.FileOutputStream // [MỚI]
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
+import java.io.FileOutputStream
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class WriteFragment : Fragment() {
 
@@ -68,6 +77,24 @@ class WriteFragment : Fragment() {
 
     // [MỚI] Biến MediaPlayer để phát âm thanh
     private var mediaPlayer: MediaPlayer? = null
+    private var recorder: MediaRecorder? = null
+    private var isRecording = false
+    private var recordedFile: File? = null
+    private var recordStartTime: Long = 0L
+    private var recordedDuration: Long = 0L
+
+    private var currentPlayingMessageId: String? = null
+    private val visualizerAnimators = mutableListOf<android.animation.ValueAnimator>()
+
+    private val audioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startRecording()
+        } else {
+            Toast.makeText(requireContext(), getString(R.string.voice_permission_denied), Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -91,8 +118,20 @@ class WriteFragment : Fragment() {
 
         chatRoomId = if (senderId < receiverId) senderId + receiverId else receiverId + senderId
 
-        chatAdapter = ChatAdapter(messages, senderId) { view, position, message ->
-            showPopupMenu(view, position, message)
+        chatAdapter = ChatAdapter(
+            messages,
+            senderId,
+            { view, position, message -> showPopupMenu(view, position, message) }
+        ) { message ->
+            if (message.type == "voice" && !message.audioUrl.isNullOrBlank()) {
+                if (message.messageId != null && message.messageId == currentPlayingMessageId) {
+                    stopVoicePlayback()
+                } else {
+                    playVoiceMessage(message.messageId, message.audioUrl!!)
+                }
+            } else {
+                playMessageAudio(message.message)
+            }
         }
         binding.chatRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -112,6 +151,19 @@ class WriteFragment : Fragment() {
                 Toast.makeText(requireContext(), getString(R.string.add_friend_first), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            if (isRecording) {
+                stopRecording(sendAfterStop = true)
+                return@setOnClickListener
+            }
+
+            recordedFile?.let { file ->
+                if (file.exists()) {
+                    sendVoiceMessage(file, recordedDuration)
+                    return@setOnClickListener
+                }
+            }
+
             val newText = binding.edtMessage.text.toString().trim()
             if (newText.isEmpty()) return@setOnClickListener
 
@@ -149,16 +201,27 @@ class WriteFragment : Fragment() {
                         }
                     }
             } else {
+                val msgRef = database.child("chats").child(chatRoomId).push()
                 val m = MessageModel(
+                    messageId = msgRef.key,
                     message = newText,
                     senderId = senderId,
                     senderName = currentUserName,
                     receiverId = receiverId,
-                    kordim = false
+                    kordim = false,
+                    type = "text"
                 )
-                database.child("chats").child(chatRoomId).push().setValue(m)
+                msgRef.setValue(m)
                 binding.edtMessage.setText("")
                 binding.edtMessage.clearFocus()
+            }
+        }
+
+        binding.btnMic.setOnClickListener {
+            if (isRecording) {
+                stopRecording(sendAfterStop = false)
+            } else {
+                checkAudioPermissionAndStart()
             }
         }
 
@@ -187,6 +250,8 @@ class WriteFragment : Fragment() {
         val popup = androidx.appcompat.widget.PopupMenu(requireContext(), view)
         popup.menuInflater.inflate(R.menu.message_popup_menu, popup.menu)
 
+        val isVoice = message.type == "voice"
+
         for (i in 0 until popup.menu.size()) {
             val item = popup.menu.getItem(i)
             val icon = item.icon
@@ -210,7 +275,10 @@ class WriteFragment : Fragment() {
             e.printStackTrace()
         }
 
-        popup.menu.findItem(R.id.menu_edit)?.isVisible = (message.senderId == senderId)
+        popup.menu.findItem(R.id.menu_speak)?.isVisible = !isVoice
+        popup.menu.findItem(R.id.menu_edit)?.isVisible = (message.senderId == senderId && !isVoice)
+        popup.menu.findItem(R.id.share_message)?.isVisible = true
+        popup.menu.findItem(R.id.copy_message)?.isVisible = !isVoice
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -231,7 +299,11 @@ class WriteFragment : Fragment() {
                 }
 
                 R.id.share_message -> {
-                    shareText(message.message)
+                    if (message.type == "voice" && !message.audioUrl.isNullOrBlank()) {
+                        shareText(message.audioUrl!!)
+                    } else {
+                        shareText(message.message)
+                    }
                     true
                 }
 
@@ -253,15 +325,17 @@ class WriteFragment : Fragment() {
                         dialog.dismiss()
                         database.child("chats").child(chatRoomId).get().addOnSuccessListener { snapshot ->
                             for (child in snapshot.children) {
+                                val keyMatch = message.messageId != null && child.key == message.messageId
                                 val msg = child.getValue(MessageModel::class.java)
-                                if (msg?.message == message.message && msg.senderId == message.senderId) {
+                                val legacyMatch = msg?.message == message.message && msg.senderId == message.senderId
+                                if (keyMatch || legacyMatch) {
                                     if (deleteForBoth) {
                                         child.ref.removeValue().addOnSuccessListener { chatAdapter.removeMessage(position) }
                                     } else {
                                         val myUid = senderId
-                                        val otherUid = if (myUid == msg.senderId) msg.receiverId else msg.senderId
+                                        val otherUid = if (myUid == msg?.senderId) msg?.receiverId else msg?.senderId
                                         child.ref.child("hiddenFor").child(myUid).setValue(true).addOnSuccessListener {
-                                            child.ref.child("hiddenFor").child(otherUid).get().addOnSuccessListener { otherHiddenSnap ->
+                                            child.ref.child("hiddenFor").child(otherUid ?: "").get().addOnSuccessListener { otherHiddenSnap ->
                                                 val otherHidden = otherHiddenSnap.getValue(Boolean::class.java) == true
                                                 if (otherHidden) {
                                                     child.ref.removeValue().addOnSuccessListener { chatAdapter.removeMessage(position) }
@@ -293,7 +367,7 @@ class WriteFragment : Fragment() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // 1. Gọi API
-                val responseBody = RetrofitClient.instance.getTtsAudio(mapOf("text" to text))
+                val responseBody = com.example.vio.api.TtsClient.instance.getTtsAudio(mapOf("text" to text))
 
                 // 2. Lưu file tạm
                 val bytes = responseBody.bytes()
@@ -331,6 +405,219 @@ class WriteFragment : Fragment() {
         }
     }
 
+    private fun checkAudioPermissionAndStart() {
+        when {
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED -> startRecording()
+            shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) -> {
+                Toast.makeText(requireContext(), getString(R.string.voice_permission_rationale), Toast.LENGTH_SHORT).show()
+                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+            else -> audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun startRecording() {
+        if (isRecording) return
+        try {
+            mediaPlayer?.release()
+            mediaPlayer = null
+
+            recordedFile?.delete()
+            recordedFile = File.createTempFile("voice_${System.currentTimeMillis()}", ".m4a", requireContext().cacheDir)
+
+            recorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128_000)
+                setAudioSamplingRate(44_100)
+                setOutputFile(recordedFile!!.absolutePath)
+                prepare()
+                start()
+            }
+            recordStartTime = System.currentTimeMillis()
+            recordedDuration = 0L
+            isRecording = true
+            _binding?.apply {
+                edtMessage.hint = getString(R.string.recording_hint)
+                btnMic.setColorFilter(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
+                startRecordingVisualizer()
+            }
+            Toast.makeText(requireContext(), getString(R.string.recording_start), Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("WriteFragment", "startRecording error", e)
+            Toast.makeText(requireContext(), getString(R.string.recording_error), Toast.LENGTH_SHORT).show()
+            resetRecordingState(deleteFile = true)
+        }
+    }
+
+    private fun stopRecording(sendAfterStop: Boolean) {
+        if (!isRecording) return
+        try {
+            recorder?.apply {
+                stop()
+                release()
+            }
+            recorder = null
+            recordedDuration = System.currentTimeMillis() - recordStartTime
+            isRecording = false
+            _binding?.apply {
+                edtMessage.hint = getString(R.string.messages_hint)
+                btnMic.clearColorFilter()
+                stopRecordingVisualizer()
+            }
+
+            if (sendAfterStop) {
+                recordedFile?.let { sendVoiceMessage(it, recordedDuration) }
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.recording_saved), Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e("WriteFragment", "stopRecording error", e)
+            Toast.makeText(requireContext(), getString(R.string.recording_error), Toast.LENGTH_SHORT).show()
+            resetRecordingState(deleteFile = true)
+        }
+    }
+
+    private fun resetRecordingState(deleteFile: Boolean) {
+        try {
+            recorder?.reset()
+            recorder?.release()
+        } catch (_: Exception) {}
+        recorder = null
+        isRecording = false
+        recordStartTime = 0L
+        recordedDuration = 0L
+        if (deleteFile) {
+            recordedFile?.delete()
+        }
+        recordedFile = null
+        _binding?.apply {
+            edtMessage.hint = getString(R.string.messages_hint)
+            btnMic.clearColorFilter()
+            stopRecordingVisualizer()
+        }
+    }
+
+    private fun sendVoiceMessage(file: File, durationMs: Long) {
+        lifecycleScope.launch {
+            val safeBinding = _binding ?: return@launch
+            try {
+                safeBinding.btnSend.isEnabled = false
+                Toast.makeText(requireContext(), getString(R.string.voice_uploading), Toast.LENGTH_SHORT).show()
+
+                val downloadUrl = uploadVoiceToCloudinary(file)
+
+                val msgRef = database.child("chats").child(chatRoomId).push()
+                val message = MessageModel(
+                    messageId = msgRef.key,
+                    message = getString(R.string.voice_message_label),
+                    senderId = senderId,
+                    senderName = currentUserName,
+                    receiverId = receiverId,
+                    kordim = false,
+                    type = "voice",
+                    audioUrl = downloadUrl,
+                    audioDuration = durationMs
+                )
+                msgRef.setValue(message)
+                safeBinding.edtMessage.setText("")
+                Toast.makeText(requireContext(), getString(R.string.voice_sent), Toast.LENGTH_SHORT).show()
+                resetRecordingState(deleteFile = true)
+            } catch (e: Exception) {
+                Log.e("WriteFragment", "sendVoiceMessage error", e)
+                Toast.makeText(requireContext(), getString(R.string.voice_send_error, e.message ?: ""), Toast.LENGTH_LONG).show()
+            } finally {
+                safeBinding.btnSend.isEnabled = canChat
+            }
+        }
+    }
+
+    private suspend fun uploadVoiceToCloudinary(file: File): String {
+        return suspendCancellableCoroutine { cont ->
+            CloudinaryImageService.uploadAudio(requireContext(), chatRoomId, file) { result ->
+                if (!cont.isActive) return@uploadAudio
+                result.onSuccess { cont.resume(it) }
+                    .onFailure { cont.resumeWithException(it) }
+            }
+        }
+    }
+
+    private fun playVoiceMessage(messageId: String?, audioUrl: String) {
+        try {
+            stopVoicePlayback()
+            currentPlayingMessageId = messageId
+            chatAdapter.setPlaying(currentPlayingMessageId)
+
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(audioUrl)
+                setOnPreparedListener { it.start() }
+                setOnCompletionListener { player ->
+                    player.release()
+                    mediaPlayer = null
+                    currentPlayingMessageId = null
+                    chatAdapter.setPlaying(null)
+                }
+                setOnErrorListener { player, _, _ ->
+                    player.release()
+                    mediaPlayer = null
+                    currentPlayingMessageId = null
+                    chatAdapter.setPlaying(null)
+                    Toast.makeText(requireContext(), getString(R.string.voice_play_error), Toast.LENGTH_SHORT).show()
+                    true
+                }
+                prepareAsync()
+            }
+        } catch (e: Exception) {
+            Log.e("WriteFragment", "playVoiceMessage error", e)
+            Toast.makeText(requireContext(), getString(R.string.voice_play_error), Toast.LENGTH_SHORT).show()
+            currentPlayingMessageId = null
+            chatAdapter.setPlaying(null)
+        }
+    }
+
+    private fun stopVoicePlayback() {
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {}
+        mediaPlayer?.release()
+        mediaPlayer = null
+        currentPlayingMessageId = null
+        chatAdapter.setPlaying(null)
+    }
+
+    private fun startRecordingVisualizer() {
+        val b = _binding ?: return
+        b.recordVisualizer.visibility = View.VISIBLE
+        val bars = listOf(b.recordBar1, b.recordBar2, b.recordBar3)
+        visualizerAnimators.forEach { it.cancel() }
+        visualizerAnimators.clear()
+        for ((index, bar) in bars.withIndex()) {
+            val animator = ValueAnimator.ofFloat(0.7f, 1.4f).apply {
+                duration = 400L + index * 80L
+                repeatMode = ValueAnimator.REVERSE
+                repeatCount = ValueAnimator.INFINITE
+                addUpdateListener { valueAnimator ->
+                    val scale = valueAnimator.animatedValue as Float
+                    bar.scaleY = scale
+                }
+                start()
+            }
+            visualizerAnimators.add(animator)
+        }
+    }
+
+    private fun stopRecordingVisualizer() {
+        visualizerAnimators.forEach { it.cancel() }
+        visualizerAnimators.clear()
+        _binding?.apply {
+            recordVisualizer.visibility = View.GONE
+            listOf(recordBar1, recordBar2, recordBar3).forEach { bar ->
+                bar.scaleY = 1f
+            }
+        }
+    }
+
     private fun listenForMessages() {
         database.child("chats").child(chatRoomId)
             .addValueEventListener(object : ValueEventListener {
@@ -344,6 +631,7 @@ class WriteFragment : Fragment() {
 
                         val message = child.getValue(MessageModel::class.java)
                         if (message != null) {
+                            message.messageId = child.key
                             val displayName = userNames[message.senderId]
                             if (!displayName.isNullOrBlank()) {
                                 message.senderName = displayName
@@ -447,8 +735,8 @@ class WriteFragment : Fragment() {
         super.onDestroyView()
         friendshipListener?.let { friendsRef.removeEventListener(it) }
         // [MỚI] Giải phóng MediaPlayer
-        mediaPlayer?.release()
-        mediaPlayer = null
+        stopVoicePlayback()
+        resetRecordingState(deleteFile = true)
         _binding = null
     }
 }
