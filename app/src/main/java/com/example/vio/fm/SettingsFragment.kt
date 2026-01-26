@@ -27,15 +27,26 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // --- XỬ LÝ LOGIC BACK ---
+        binding.btnBack.setOnClickListener {
+            // Quay lại màn hình trước đó trong Stack
+            findNavController().popBackStack()
+        }
+        // ------------------------
+
         binding.swNotifications.setOnCheckedChangeListener { _, isChecked ->
             Toast.makeText(requireContext(), if (isChecked) "Bật thông báo" else "Tắt thông báo", Toast.LENGTH_SHORT).show()
         }
+
         binding.swDarkMode.setOnCheckedChangeListener { _, isChecked ->
             Toast.makeText(requireContext(), if (isChecked) "Bật chế độ tối" else "Tắt chế độ tối", Toast.LENGTH_SHORT).show()
         }
+
         binding.btnLogoutContainer.setOnClickListener {
             FirebaseAuth.getInstance().signOut()
             Toast.makeText(requireContext(), getString(R.string.logged_out), Toast.LENGTH_SHORT).show()
+
+            // Điều hướng về màn hình đăng nhập và xóa backstack để không back lại được setting
             findNavController().navigate(R.id.loginFragment)
         }
     }

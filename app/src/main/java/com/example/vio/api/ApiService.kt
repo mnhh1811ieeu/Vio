@@ -27,7 +27,7 @@ interface ApiService {
 object RetrofitClient {
     // ⚠️ QUAN TRỌNG: Thay đổi IP này thành IPv4 máy tính của bạn
     // Chạy lệnh 'ipconfig' trên CMD để lấy IPv4 (ví dụ: 192.168.1.6)
-    private const val BASE_URL = "http://192.168.1.7:5000/api/"
+    private const val BASE_URL = "http://192.168.1.4:5000/api/"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS) // Gemini xử lý ảnh lâu, cần timeout cao
