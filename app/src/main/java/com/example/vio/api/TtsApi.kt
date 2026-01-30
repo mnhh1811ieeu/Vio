@@ -14,7 +14,7 @@ interface TtsApiService {
 // ĐỔI TÊN Ở ĐÂY: RetrofitClient -> TtsClient
 object TtsClient {
     // Thay đổi IP này thành IP máy tính hiện tại của bạn (Ví dụ: 192.168.1.6)
-    private const val BASE_URL = "http://192.168.1.4:5000/"
+    private const val BASE_URL = "http://192.168.1.7:5000/"
 
     val instance: TtsApiService by lazy {
         Retrofit.Builder()

@@ -2,21 +2,26 @@ package com.example.vio
 
 import android.app.Application
 import android.os.Bundle
-import android.view.KeyEvent // Nhớ import cái này
+import android.util.Log // Import Log
+import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.setupWithNavController
 import com.cloudinary.android.MediaManager
 import com.example.vio.databinding.ActivityMainBinding
-import com.example.vio.fm.AICameraFragment // Import Fragment Camera
+import com.example.vio.fm.AICameraFragment
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.database.FirebaseDatabase
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
 
     // Biến để xử lý bấm đúp (Double Click)
     private var lastClickTime: Long = 0
-    private val DOUBLE_CLICK_TIME_DELTA: Long = 500 // Khoảng cách giữa 2 lần ấn là 0.5 giây
+    private val DOUBLE_CLICK_TIME_DELTA: Long = 500
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,39 +32,94 @@ class MainActivity : AppCompatActivity() {
         val navController = navHostFragment.navController
         binding.bottomNav.setupWithNavController(navController)
 
+        // Yêu cầu đăng nhập cho các tab cần bảo vệ
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
+            val requiresLogin = when (item.itemId) {
+                R.id.contactsFragment -> true
+                else -> false
+            }
+
+            if (requiresLogin && !isLoggedIn) {
+                android.widget.Toast.makeText(this, "Bạn cần đăng nhập để tiếp tục", android.widget.Toast.LENGTH_SHORT).show()
+                navController.navigate(R.id.loginFragment)
+                return@setOnItemSelectedListener false
+            }
+
+            NavigationUI.onNavDestinationSelected(item, navController)
+            true
+        }
+
         navController.addOnDestinationChangedListener { _, destination, _ ->
             binding.bottomNav.visibility = when (destination.id) {
                 R.id.loginFragment, R.id.writeFragment, R.id.AICameraFragment -> View.GONE
                 else -> View.VISIBLE
             }
         }
+
+        // --- [SỬA LỖI QUAN TRỌNG] ---
+        // Thay vì chỉ gọi 1 lần, ta lắng nghe sự kiện đăng nhập.
+        // Bất cứ khi nào user đăng nhập thành công, code này sẽ chạy tự động.
+        setupAuthListener()
     }
 
-    // --- THÊM ĐOẠN NÀY ĐỂ BẮT PHÍM TĂNG ÂM LƯỢNG ---
+    private fun setupAuthListener() {
+        FirebaseAuth.getInstance().addAuthStateListener { firebaseAuth ->
+            if (firebaseAuth.currentUser != null) {
+                // Người dùng vừa đăng nhập (hoặc đã đăng nhập sẵn) -> Lưu Token ngay
+                Log.d("FCM_DEBUG", "Phát hiện người dùng đã đăng nhập: ${firebaseAuth.currentUser?.uid}")
+                updateFCMToken()
+            } else {
+                Log.d("FCM_DEBUG", "Người dùng chưa đăng nhập.")
+            }
+        }
+    }
+
+    private fun updateFCMToken() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.e("FCM_DEBUG", "❌ Lỗi sinh Token: ${task.exception}")
+                    return@addOnCompleteListener
+                }
+                val token = task.result
+                Log.d("FCM_DEBUG", "✅ Token lấy được từ thiết bị: $token")
+
+                // Lưu token vào node users/{uid}/fcmToken
+                val ref = FirebaseDatabase.getInstance().getReference("users")
+                ref.child(currentUser.uid).child("fcmToken").setValue(token)
+                    .addOnSuccessListener {
+                        Log.d("FCM_DEBUG", "✅ Đã lưu Token lên Firebase Database thành công!")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("FCM_DEBUG", "❌ Lỗi lưu Token lên Database: ${e.message}")
+                    }
+            }
+        }
+    }
+
+    // --- Xử lý phím cứng Volume ---
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             val clickTime = System.currentTimeMillis()
             if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
-                // Phát hiện Bấm Đúp -> Xử lý ngay
                 handleVolumeDoublePress()
-                return true // Chặn không cho tăng âm lượng thật
+                return true
             }
             lastClickTime = clickTime
-            return true // Chặn sự kiện đơn lẻ
+            return true
         }
         return super.onKeyDown(keyCode, event)
     }
 
     private fun handleVolumeDoublePress() {
-        // Tìm xem đang đứng ở màn hình nào
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
         val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
 
         if (currentFragment is AICameraFragment) {
-            // 1. Nếu đang ở màn hình Camera -> Gọi hàm chụp
             currentFragment.onVolumeDoublePressed()
         } else {
-            // 2. Nếu đang ở màn hình khác (Home, Chat...) -> Mở Camera
             try {
                 navHostFragment?.navController?.navigate(R.id.AICameraFragment)
             } catch (e: Exception) {
@@ -69,7 +129,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-// Class VioApp giữ nguyên không đổi
+// Class VioApp giữ nguyên
 class VioApp : Application() {
     override fun onCreate() {
         super.onCreate()

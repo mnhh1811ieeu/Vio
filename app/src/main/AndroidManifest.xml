@@ -6,6 +6,17 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
     <application
         android:name=".VioApp"
         android:allowBackup="true"
@@ -29,7 +40,14 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Required by uCrop library -->
+        <service
+            android:name=".service.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:exported="false"
@@ -40,19 +58,16 @@
             android:name=".SplashActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".MainActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize">
-
-        </activity>
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".AICameraActivity"
@@ -63,6 +78,7 @@
             android:name=".VoiceCommActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+
     </application>
 
 </manifest>

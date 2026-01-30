@@ -27,7 +27,7 @@ class HomeFragment : Fragment() {
 
     private lateinit var binding: FragmentHomeBinding
     private val dbRef = FirebaseDatabase.getInstance().getReference("users")
-    private val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
+    private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var doubleBackToExitPressedOnce = false
 
     override fun onCreateView(
@@ -43,6 +43,9 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val isLoggedIn = auth.currentUser != null
+        updateGreeting(isLoggedIn)
 
         // 1. Nút Camera AI (Dịch ký hiệu)
         binding.btnAICamera.setOnClickListener {
@@ -70,6 +73,11 @@ class HomeFragment : Fragment() {
         // 4. Nút Tạo Chat Mới (Điều hướng bằng Navigation Component)
         // Thay đoạn cũ bằng đoạn này:
         binding.btnNewChat.setOnClickListener {
+            if (!isLoggedIn()) {
+                Toast.makeText(context, "Bạn cần đăng nhập để sử dụng mục này", Toast.LENGTH_SHORT).show()
+                findNavController().navigate(R.id.loginFragment)
+                return@setOnClickListener
+            }
             try {
                 // Sử dụng đúng ID vừa thêm trong file XML
                 findNavController().navigate(R.id.action_homeFragment_to_chatListFragment)
@@ -106,14 +114,15 @@ class HomeFragment : Fragment() {
     }
 
     private fun fetchCurrentUser() {
-        if (currentUserUid == null) return
-        dbRef.child(currentUserUid).addListenerForSingleValueEvent(object : ValueEventListener {
+        val uid = auth.currentUser?.uid ?: return
+        dbRef.child(uid).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!isAdded) return
                 val ctx = context ?: return
                 val b = binding
                 val currentUser = snapshot.getValue(User::class.java)
                 currentUser?.let {
+                    b.tvGreetingPrefix.visibility = View.VISIBLE
                     b.tvUsername.text = it.name
 
                     // Load ảnh đại diện
@@ -136,7 +145,7 @@ class HomeFragment : Fragment() {
 
     // Đồng bộ email vào node users nếu trước đây chưa có (để tìm kiếm Gmail hoạt động)
     private fun ensureEmailSynced() {
-        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val user = auth.currentUser ?: return
         val email = user.email?.trim()?.lowercase() ?: return
         val uid = user.uid
         dbRef.child(uid).child("email").get().addOnSuccessListener { snap ->
@@ -146,4 +155,16 @@ class HomeFragment : Fragment() {
             }
         }
     }
+
+    private fun updateGreeting(isLoggedIn: Boolean) {
+        val b = binding
+        if (isLoggedIn) {
+            b.tvGreetingPrefix.visibility = View.VISIBLE
+        } else {
+            b.tvGreetingPrefix.visibility = View.GONE
+            b.tvUsername.text = "Chào mừng bạn đến Vio"
+        }
+    }
+
+    private fun isLoggedIn(): Boolean = auth.currentUser != null
 }

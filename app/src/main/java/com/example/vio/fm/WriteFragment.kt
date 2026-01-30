@@ -168,6 +168,7 @@ class WriteFragment : Fragment() {
             if (newText.isEmpty()) return@setOnClickListener
 
             if (editingMessage != null) {
+                // --- LOGIC SỬA TIN NHẮN (GIỮ NGUYÊN) ---
                 val targetMessage = editingMessage!!
                 if (targetMessage.senderId != senderId) {
                     Toast.makeText(requireContext(), getString(R.string.edit_not_allowed), Toast.LENGTH_SHORT).show()
@@ -201,6 +202,7 @@ class WriteFragment : Fragment() {
                         }
                     }
             } else {
+                // --- LOGIC GỬI TIN NHẮN MỚI (ĐÃ CẬP NHẬT) ---
                 val msgRef = database.child("chats").child(chatRoomId).push()
                 val m = MessageModel(
                     messageId = msgRef.key,
@@ -211,7 +213,27 @@ class WriteFragment : Fragment() {
                     kordim = false,
                     type = "text"
                 )
-                msgRef.setValue(m)
+
+                // 1. Lưu tin nhắn lên Firebase Database
+                msgRef.setValue(m).addOnSuccessListener {
+                    // 2. [MỚI] Sau khi lưu xong -> Gọi API Python để bắn thông báo
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            // Tạo request gửi lên Server
+                            val request = com.example.vio.api.PushNotificationRequest(
+                                userId = receiverId,      // Gửi cho ai?
+                                title = currentUserName,  // Tiêu đề là tên người gửi
+                                body = newText            // Nội dung tin nhắn
+                            )
+                            // Gọi Retrofit
+                            com.example.vio.api.RetrofitClient.instance.sendPushNotification(request)
+                        } catch (e: Exception) {
+                            Log.e("WriteFragment", "Không gửi được thông báo: ${e.message}")
+                        }
+                    }
+                }
+
+                // Xóa ô nhập liệu
                 binding.edtMessage.setText("")
                 binding.edtMessage.clearFocus()
             }
@@ -520,7 +542,26 @@ class WriteFragment : Fragment() {
                     audioUrl = downloadUrl,
                     audioDuration = durationMs
                 )
-                msgRef.setValue(message)
+
+                // --- SỬA ĐOẠN NÀY ---
+                // Thêm addOnSuccessListener để gửi thông báo sau khi lưu xong
+                msgRef.setValue(message).addOnSuccessListener {
+                    // [MỚI] Gửi thông báo cho Voice Chat
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val request = com.example.vio.api.PushNotificationRequest(
+                                userId = receiverId,
+                                title = currentUserName,
+                                body = "Đã gửi một tin nhắn thoại 🎤" // Nội dung thông báo
+                            )
+                            com.example.vio.api.RetrofitClient.instance.sendPushNotification(request)
+                        } catch (e: Exception) {
+                            Log.e("WriteFragment", "Lỗi gửi thông báo voice: ${e.message}")
+                        }
+                    }
+                }
+                // --------------------
+
                 safeBinding.edtMessage.setText("")
                 Toast.makeText(requireContext(), getString(R.string.voice_sent), Toast.LENGTH_SHORT).show()
                 resetRecordingState(deleteFile = true)

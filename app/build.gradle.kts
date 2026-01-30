@@ -69,13 +69,12 @@ dependencies {
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.database)
-    implementation("com.google.firebase:firebase-storage-ktx:21.0.0")
     implementation("com.cloudinary:cloudinary-android:3.0.2")
     implementation("com.github.yalantis:ucrop:2.2.8")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
+    implementation("com.google.firebase:firebase-messaging:23.4.0") // Hoặc bản mới nhất
     implementation(libs.play.services.auth)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
